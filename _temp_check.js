@@ -1,0 +1,1248 @@
+
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            },
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen flex flex-col">
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="bg-brand-600 text-white p-2 rounded-xl shadow-sm">
+          <i data-lucide="boxes" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-slate-900 leading-none">StockFlow</h1>
+          <p class="text-xs text-slate-500 mt-0.5 hidden sm:block">Smart Inventory Control</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="relative">
+          <select id="currency-select" aria-label="Select Currency"
+            class="appearance-none bg-slate-100 hover:bg-slate-200/70 text-slate-700 text-xs sm:text-sm font-semibold rounded-xl pl-3 pr-8 py-2 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition cursor-pointer">
+            <option value="KES">KES (KSh)</option>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+          </select>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+        </div>
+
+        <div class="relative" id="data-menu-container">
+          <button id="toggle-data-menu" type="button"
+            class="inline-flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-medium px-3 py-2 rounded-xl border border-slate-200 shadow-sm transition">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-slate-500"></i>
+            <span class="hidden md:inline">Data / CSV</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+          </button>
+          <div id="data-menu" class="hidden absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-40">
+            <button id="export-csv-btn" type="button" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2.5">
+              <i data-lucide="download" class="w-4 h-4 text-emerald-600"></i>
+              Export Inventory CSV
+            </button>
+            <label class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer">
+              <i data-lucide="upload" class="w-4 h-4 text-brand-600"></i>
+              Import Inventory CSV
+              <input type="file" id="csv-file-input" accept=".csv" class="hidden">
+            </label>
+            <div class="border-t border-slate-100 my-1"></div>
+            <button id="open-reset-modal-btn" type="button" class="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2.5">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+              Reset Demo Data
+            </button>
+          </div>
+        </div>
+
+        <button id="open-product-modal-btn" type="button"
+          class="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-semibold px-3.5 sm:px-4 py-2 rounded-xl shadow-sm transition active:scale-[0.99]">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Add Product</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+    <section aria-label="Inventory Summary Metrics" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Total Products</p>
+          <h2 id="kpi-total-products" class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1.5">0</h2>
+          <p id="kpi-categories-count" class="text-xs text-slate-500 mt-1">Across 0 categories</p>
+        </div>
+        <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+          <i data-lucide="package" class="w-5 h-5"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Total Stock Units</p>
+          <h2 id="kpi-total-units" class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1.5">0</h2>
+          <p class="text-xs text-emerald-600 font-medium mt-1 flex items-center gap-1">
+            <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Physical units on hand
+          </p>
+        </div>
+        <div class="p-3 bg-sky-50 text-sky-600 rounded-xl">
+          <i data-lucide="layers" class="w-5 h-5"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Inventory Valuation</p>
+          <h2 id="kpi-total-value" class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1.5 truncate max-w-[200px]" title="">0</h2>
+          <p class="text-xs text-slate-500 mt-1">Based on unit cost</p>
+        </div>
+        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+          <i data-lucide="wallet" class="w-5 h-5"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-start justify-between">
+        <div class="w-full">
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Cash Available</p>
+          <h2 id="kpi-cash-available" class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1.5 truncate">KSh 0</h2>
+          <p id="cash-available-meta" class="text-xs text-slate-500 mt-1">Increases from sales and capital</p>
+        </div>
+        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl ml-3">
+          <i data-lucide="banknote" class="w-5 h-5"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Total Profit</p>
+          <h2 id="kpi-total-profit" class="text-2xl sm:text-3xl font-bold text-emerald-700 mt-1.5 truncate">KSh 0</h2>
+          <p class="text-xs text-slate-500 mt-1">Sales minus product cost</p>
+        </div>
+        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+          <i data-lucide="trending-up" class="w-5 h-5"></i>
+        </div>
+      </div>
+
+      <button id="low-stock-card" type="button" class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-start justify-between cursor-pointer hover:border-amber-300 transition group text-left">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-500 group-hover:text-amber-700 transition">Low / Out of Stock</p>
+          <h2 id="kpi-low-stock" class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1.5">0</h2>
+          <p id="kpi-out-stock-sub" class="text-xs text-amber-600 font-medium mt-1">Click to filter alerts</p>
+        </div>
+        <div id="kpi-alert-icon-bg" class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+        </div>
+      </button>
+    </section>
+
+    <div id="view-tabs" class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-3 relative z-20">
+      <div role="tablist" aria-label="Inventory Views" class="inline-flex bg-slate-200/70 p-1 rounded-xl self-start">
+        <button id="tab-inventory" data-tab="inventory" role="tab" aria-selected="true" aria-controls="view-inventory" type="button"
+          class="tab-btn cursor-pointer select-none px-4 py-2 rounded-lg text-sm font-semibold bg-white text-slate-900 shadow-sm transition flex items-center gap-2">
+          <i data-lucide="list-checks" class="w-4 h-4 text-brand-600 pointer-events-none"></i>
+          <span class="pointer-events-none">Inventory Products</span>
+          <span id="badge-inventory-count" class="pointer-events-none bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full">0</span>
+        </button>
+        <button id="tab-audit" data-tab="audit" role="tab" aria-selected="false" aria-controls="view-audit" type="button"
+          class="tab-btn cursor-pointer select-none px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 transition flex items-center gap-2">
+          <i data-lucide="history" class="w-4 h-4 pointer-events-none"></i>
+          <span class="pointer-events-none">Stock Movement Log</span>
+          <span id="badge-audit-count" class="pointer-events-none bg-slate-200 text-slate-600 text-xs px-2 py-0.5 rounded-full">0</span>
+        </button>
+      </div>
+
+      <div class="text-xs text-slate-500 flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        Live sync across tabs on this device
+      </div>
+    </div>
+
+    <section aria-label="Sales and capital" class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <form id="sale-form" class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Record a Sale</h2>
+          <p class="text-xs text-slate-500 mt-1">Stock, cash, and profit update immediately.</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-1">
+            <label for="sale-product" class="block text-xs font-medium text-slate-600 mb-1.5">Product</label>
+            <select id="sale-product" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
+          </div>
+          <div>
+            <label for="sale-quantity" class="block text-xs font-medium text-slate-600 mb-1.5">Quantity</label>
+            <input id="sale-quantity" type="number" min="1" step="1" value="1" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div>
+            <label for="sale-unit-price" class="block text-xs font-medium text-slate-600 mb-1.5">Selling price per unit</label>
+            <input id="sale-unit-price" type="number" min="0" step="0.01" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+        </div>
+        <div class="flex justify-end">
+          <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition">
+            <i data-lucide="shopping-cart" class="w-4 h-4"></i> Complete Sale
+          </button>
+        </div>
+      </form>
+
+      <form id="capital-form" class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Capital Injection</h2>
+          <p class="text-xs text-slate-500 mt-1">Add funds to available cash.</p>
+        </div>
+        <div>
+          <label for="capital-amount" class="block text-xs font-medium text-slate-600 mb-1.5">Amount</label>
+          <input id="capital-amount" type="number" min="0.01" step="0.01" required placeholder="0.00" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 transition">
+          <i data-lucide="circle-dollar-sign" class="w-4 h-4"></i> Add Capital
+        </button>
+      </form>
+    </section>
+
+    <section id="view-inventory" data-panel="inventory" role="tabpanel" class="space-y-4">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row gap-3">
+        <div class="relative flex-1">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input type="text" id="search-input"
+            placeholder="Search by product name, SKU, or supplier..."
+            class="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
+          <button id="clear-search-btn" type="button" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="relative sm:w-48">
+          <select id="category-filter" aria-label="Filter by Category"
+            class="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-9 py-2.5 text-sm text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition cursor-pointer">
+            <option value="ALL">All Categories</option>
+          </select>
+          <i data-lucide="filter" class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+        </div>
+
+        <div class="relative sm:w-48">
+          <select id="status-filter" aria-label="Filter by Status"
+            class="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-9 py-2.5 text-sm text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition cursor-pointer">
+            <option value="ALL">All Statuses</option>
+            <option value="IN_STOCK">In Stock</option>
+            <option value="LOW_STOCK">Low Stock</option>
+            <option value="OUT_OF_STOCK">Out of Stock</option>
+          </select>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50/80 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <th class="py-3.5 px-4 sm:px-6">Product & SKU</th>
+                <th class="py-3.5 px-4 hidden md:table-cell">Category</th>
+                <th class="py-3.5 px-4 text-right hidden sm:table-cell">Unit Cost</th>
+                <th class="py-3.5 px-4 text-center">Stock Level</th>
+                <th class="py-3.5 px-4 text-right hidden lg:table-cell">Total Value</th>
+                <th class="py-3.5 px-4 hidden sm:table-cell">Status</th>
+                <th class="py-3.5 px-4 sm:px-6 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table-body" class="divide-y divide-slate-100 text-sm"></tbody>
+          </table>
+        </div>
+
+        <div id="inventory-empty-state" class="hidden py-16 px-4 text-center">
+          <div class="w-14 h-14 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="package-search" class="w-7 h-7"></i>
+          </div>
+          <h3 class="text-base font-semibold text-slate-900">No matching products found</h3>
+          <p class="text-sm text-slate-500 mt-1 max-w-md mx-auto">Try adjusting your search query or filters, or add a new item to your inventory.</p>
+          <button id="reset-filters-btn" type="button" class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset all filters
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-audit" data-panel="audit" role="tabpanel" class="hidden space-y-4">
+      <div class="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Stock Movement & Audit History</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Every stock-in, stock-out, product creation, and edit is automatically recorded.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="audit-type-filter"
+              class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+              <option value="ALL">All Movements</option>
+              <option value="STOCK_IN">Stock In (+)</option>
+              <option value="STOCK_OUT">Stock Out (-)</option>
+              <option value="CREATED">New Products</option>
+              <option value="ADJUSTED">Manual Edits</option>
+            </select>
+            <button id="clear-audit-btn" type="button"
+              class="text-xs font-medium text-slate-500 hover:text-rose-600 px-3 py-2 rounded-xl hover:bg-rose-50 transition">
+              Clear History
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto mt-2">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <th class="py-3 px-3">Timestamp</th>
+                <th class="py-3 px-3">Type</th>
+                <th class="py-3 px-3">Product</th>
+                <th class="py-3 px-3 text-right">Qty Change</th>
+                <th class="py-3 px-3 text-right">Balance</th>
+                <th class="py-3 px-3 hidden md:table-cell">Note / Reason</th>
+              </tr>
+            </thead>
+            <tbody id="audit-table-body" class="divide-y divide-slate-100 text-sm"></tbody>
+          </table>
+        </div>
+
+        <div id="audit-empty-state" class="hidden py-12 text-center">
+          <p class="text-sm text-slate-500">No stock movements logged yet. Adjust stock levels using the + / - buttons to see real-time audit logs.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="product-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/30 backdrop-blur-[1px]">
+    <div class="w-full max-w-2xl rounded-3xl bg-white shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+        <div>
+          <p class="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">Inventory</p>
+          <h3 id="product-modal-title" class="text-xl font-bold text-slate-900 mt-1">Add Product</h3>
+        </div>
+        <button id="close-product-modal-btn" type="button" class="p-2 rounded-full text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition" aria-label="Close product modal">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="product-form" class="p-5 sm:p-6 space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <label for="product-name" class="text-sm font-medium text-slate-700">Product Name</label>
+            <input id="product-name" name="productName" type="text" required maxlength="120" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div class="space-y-2">
+            <label for="product-sku" class="text-sm font-medium text-slate-700">SKU</label>
+            <input id="product-sku" name="sku" type="text" required maxlength="40" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div class="space-y-2">
+            <label for="product-category" class="text-sm font-medium text-slate-700">Category</label>
+            <input id="product-category" name="category" type="text" required maxlength="60" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div class="space-y-2">
+            <label for="product-supplier" class="text-sm font-medium text-slate-700">Supplier</label>
+            <input id="product-supplier" name="supplier" type="text" maxlength="80" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div class="space-y-2">
+            <label for="product-unit-cost" class="text-sm font-medium text-slate-700">Unit Cost</label>
+            <input id="product-unit-cost" name="unitCost" type="number" min="0" step="0.01" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div class="space-y-2">
+            <label for="product-sale-price" class="text-sm font-medium text-slate-700">Default Selling Price</label>
+            <input id="product-sale-price" name="salePrice" type="number" min="0" step="0.01" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div class="space-y-2">
+            <label for="product-stock" class="text-sm font-medium text-slate-700">Current Stock</label>
+            <input id="product-stock" name="stock" type="number" min="0" step="1" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div class="space-y-2 md:col-span-2">
+            <label for="product-reorder" class="text-sm font-medium text-slate-700">Reorder Threshold</label>
+            <input id="product-reorder" name="reorderLevel" type="number" min="0" step="1" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div class="space-y-2 md:col-span-2">
+            <label for="product-notes" class="text-sm font-medium text-slate-700">Notes</label>
+            <textarea id="product-notes" name="notes" rows="3" maxlength="500" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+          <button id="cancel-product-modal-btn" type="button" class="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Cancel</button>
+          <button id="submit-product-btn" type="submit" class="px-4 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition">Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="reset-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/30 backdrop-blur-[1px]">
+    <div class="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-slate-200">
+      <div class="px-5 py-4 border-b border-slate-200">
+        <h3 class="text-xl font-bold text-slate-900">Reset Inventory Data</h3>
+      </div>
+      <div class="p-5 space-y-4">
+        <p class="text-sm text-slate-600">This action will restore the demo catalog and clear the current stock history. This cannot be undone.</p>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button id="cancel-reset-modal-btn" type="button" class="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Keep Data</button>
+          <button id="confirm-reset-btn" type="button" class="px-4 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700 transition">Reset Now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const APP_STORAGE_KEY = 'stockflow-inventory-state-v1';
+    const liveChannel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(APP_STORAGE_KEY);
+
+    const DEFAULT_PRODUCTS = [];
+
+    const DEFAULT_AUDIT_LOG = [];
+
+    const state = {
+      products: [],
+      auditLog: [],
+      activeTab: 'inventory',
+      currency: 'KES',
+      lowStockFilter: false,
+      searchQuery: '',
+      statusFilter: 'ALL',
+      categoryFilter: 'ALL',
+      selectedProductId: null,
+      dataMenuOpen: false,
+      cashAvailable: 0,
+      totalProfit: 0,
+      totalCapitalInjected: 0,
+    };
+
+    function safeParseJSON(raw) {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    }
+
+    function sanitizeText(value, fallback = '') {
+      if (value === null || value === undefined) return fallback;
+      const text = String(value).replace(/[<>]/g, '').trim();
+      return text.length ? text : fallback;
+    }
+
+    function sanitizeNumber(value, fallback = 0, min = null, max = null) {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      if (min !== null && parsed < min) return min;
+      if (max !== null && parsed > max) return max;
+      return parsed;
+    }
+
+    function makeId(prefix) {
+      return `${prefix}-${Math.random().toString(16).slice(2, 10)}-${Date.now().toString(16).slice(-6)}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatCurrency(value) {
+      const amount = Number(value) || 0;
+      return new Intl.NumberFormat('en-KE', { style: 'currency', currency: state.currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
+    }
+
+    function getStatus(product) {
+      if (product.stock <= 0) return 'OUT_OF_STOCK';
+      if (product.stock <= product.reorderLevel) return 'LOW_STOCK';
+      return 'IN_STOCK';
+    }
+
+    function buildDefaultState() {
+      return {
+        products: structuredClone(DEFAULT_PRODUCTS),
+        auditLog: structuredClone(DEFAULT_AUDIT_LOG),
+        currency: 'KES',
+        activeTab: 'inventory',
+        lowStockFilter: false,
+        searchQuery: '',
+        statusFilter: 'ALL',
+        categoryFilter: 'ALL',
+        cashAvailable: 0,
+        totalProfit: 0,
+        totalCapitalInjected: 0,
+      };
+    }
+
+    function loadState() {
+      const raw = localStorage.getItem(APP_STORAGE_KEY);
+      const parsed = raw ? safeParseJSON(raw) : null;
+      const fallback = buildDefaultState();
+
+      if (!parsed || !Array.isArray(parsed.products)) {
+        Object.assign(state, fallback);
+        return;
+      }
+
+      state.products = parsed.products.filter(item => item && typeof item === 'object').map(item => ({
+        id: sanitizeText(item.id, makeId('prod')),
+        name: sanitizeText(item.name, 'Unnamed Product'),
+        sku: sanitizeText(item.sku, `SKU-${Math.random().toString(16).slice(2, 8)}`).toUpperCase(),
+        category: sanitizeText(item.category, 'General'),
+        supplier: sanitizeText(item.supplier, 'Unknown Supplier'),
+        unitCost: sanitizeNumber(item.unitCost, 0, 0),
+        salePrice: sanitizeNumber(item.salePrice, sanitizeNumber(item.unitCost, 0, 0), 0),
+        stock: sanitizeNumber(item.stock, 0, 0),
+        reorderLevel: sanitizeNumber(item.reorderLevel, 0, 0),
+        notes: sanitizeText(item.notes, ''),
+      }));
+
+      state.auditLog = Array.isArray(parsed.auditLog) ? parsed.auditLog.map(entry => ({
+        id: sanitizeText(entry.id, makeId('audit')),
+        type: ['CREATED', 'STOCK_IN', 'STOCK_OUT', 'ADJUSTED'].includes(entry.type) ? entry.type : 'ADJUSTED',
+        productName: sanitizeText(entry.productName, 'Unknown Product'),
+        quantityChange: sanitizeNumber(entry.quantityChange, 0),
+        balance: sanitizeNumber(entry.balance, 0),
+        note: sanitizeText(entry.note, ''),
+        timestamp: typeof entry.timestamp === 'string' ? entry.timestamp : new Date().toISOString(),
+      })) : structuredClone(DEFAULT_AUDIT_LOG);
+
+      state.currency = ['KES', 'USD', 'EUR', 'GBP'].includes(parsed.currency) ? parsed.currency : 'KES';
+      state.activeTab = parsed.activeTab === 'audit' ? 'audit' : 'inventory';
+      state.lowStockFilter = Boolean(parsed.lowStockFilter);
+      state.searchQuery = sanitizeText(parsed.searchQuery, '');
+      state.statusFilter = ['ALL', 'IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'].includes(parsed.statusFilter) ? parsed.statusFilter : 'ALL';
+      state.categoryFilter = typeof parsed.categoryFilter === 'string' ? parsed.categoryFilter : 'ALL';
+      state.cashAvailable = sanitizeNumber(parsed.cashAvailable, 0, 0);
+      state.totalProfit = sanitizeNumber(parsed.totalProfit, 0);
+      state.totalCapitalInjected = sanitizeNumber(parsed.totalCapitalInjected, 0, 0);
+    }
+
+    function saveState() {
+      localStorage.setItem(APP_STORAGE_KEY, JSON.stringify({
+        products: state.products,
+        auditLog: state.auditLog,
+        currency: state.currency,
+        activeTab: state.activeTab,
+        lowStockFilter: state.lowStockFilter,
+        searchQuery: state.searchQuery,
+        statusFilter: state.statusFilter,
+        categoryFilter: state.categoryFilter,
+        cashAvailable: state.cashAvailable,
+        totalProfit: state.totalProfit,
+        totalCapitalInjected: state.totalCapitalInjected,
+      }));
+      if (liveChannel) {
+        liveChannel.postMessage('state-updated');
+      }
+    }
+
+    function showToast(message, tone = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const palette = {
+        success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+        error: 'border-rose-200 bg-rose-50 text-rose-700',
+        info: 'border-blue-200 bg-blue-50 text-blue-700',
+      };
+
+      toast.className = `border rounded-xl px-3.5 py-2.5 text-sm font-medium shadow-sm ${palette[tone] || palette.info}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 2600);
+    }
+
+    function updateKpis() {
+      const totalProducts = state.products.length;
+      const totalUnits = state.products.reduce((sum, product) => sum + Number(product.stock || 0), 0);
+      const averageCategories = new Set(state.products.map(product => product.category)).size;
+      const lowStockCount = state.products.filter(product => getStatus(product) !== 'IN_STOCK').length;
+      const totalValue = state.products.reduce((sum, product) => sum + ((Number(product.unitCost) || 0) * Number(product.stock || 0)), 0);
+
+      document.getElementById('kpi-total-products').textContent = String(totalProducts);
+      document.getElementById('kpi-categories-count').textContent = `Across ${averageCategories} categories`;
+      document.getElementById('kpi-total-units').textContent = String(totalUnits);
+      document.getElementById('kpi-total-value').textContent = formatCurrency(totalValue);
+      document.getElementById('kpi-total-value').setAttribute('title', formatCurrency(totalValue));
+      document.getElementById('kpi-low-stock').textContent = String(lowStockCount);
+      document.getElementById('kpi-out-stock-sub').textContent = lowStockCount ? `${lowStockCount} items need attention` : 'All items within target range';
+      document.getElementById('badge-inventory-count').textContent = String(state.products.length);
+      document.getElementById('badge-audit-count').textContent = String(state.auditLog.length);
+
+      document.getElementById('kpi-cash-available').textContent = formatCurrency(state.cashAvailable);
+      document.getElementById('kpi-total-profit').textContent = formatCurrency(state.totalProfit);
+      const cashMeta = document.getElementById('cash-available-meta');
+      if (cashMeta) {
+        cashMeta.textContent = `Capital added: ${formatCurrency(state.totalCapitalInjected)}`;
+      }
+    }
+
+    function renderSaleProducts(selectedId = document.getElementById('sale-product').value) {
+      const select = document.getElementById('sale-product');
+      const availableProducts = state.products.filter(product => product.stock > 0);
+      select.innerHTML = availableProducts.length
+        ? availableProducts.map(product => `<option value="${escapeHtml(product.id)}">${escapeHtml(product.name)} (${product.stock} in stock)</option>`).join('')
+        : '<option value="">No products in stock</option>';
+      if (availableProducts.some(product => product.id === selectedId)) {
+        select.value = selectedId;
+      }
+      updateSalePrice();
+      select.disabled = !availableProducts.length;
+      document.querySelector('#sale-form button[type="submit"]').disabled = !availableProducts.length;
+    }
+
+    function updateSalePrice() {
+      const product = state.products.find(item => item.id === document.getElementById('sale-product').value);
+      document.getElementById('sale-unit-price').value = product ? Number(product.salePrice || 0).toFixed(2) : '';
+    }
+
+    function getFilteredProducts() {
+      const search = state.searchQuery.trim().toLowerCase();
+      const effectiveStatusFilter = state.lowStockFilter ? 'LOW_STOCK' : state.statusFilter;
+      return state.products.filter(product => {
+        const matchesSearch = !search || [product.name, product.sku, product.supplier].join(' ').toLowerCase().includes(search);
+        const matchesCategory = state.categoryFilter === 'ALL' || product.category === state.categoryFilter;
+        const status = getStatus(product);
+        const matchesStatus = effectiveStatusFilter === 'ALL' || status === effectiveStatusFilter;
+        return matchesSearch && matchesCategory && matchesStatus;
+      });
+    }
+
+    function renderCategoryOptions() {
+      const categories = Array.from(new Set(state.products.map(product => product.category))).sort((a, b) => a.localeCompare(b));
+      const select = document.getElementById('category-filter');
+      const currentValue = state.categoryFilter;
+      select.innerHTML = '<option value="ALL">All Categories</option>' + categories.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join('');
+      select.value = categories.includes(currentValue) || currentValue === 'ALL' ? currentValue : 'ALL';
+      state.categoryFilter = select.value;
+    }
+
+    function renderInventory() {
+      const filteredProducts = getFilteredProducts();
+      const tableBody = document.getElementById('inventory-table-body');
+      const emptyState = document.getElementById('inventory-empty-state');
+      tableBody.innerHTML = '';
+
+      if (!filteredProducts.length) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      tableBody.innerHTML = filteredProducts.map(product => {
+        const status = getStatus(product);
+        const statusClasses = {
+          IN_STOCK: 'bg-emerald-100 text-emerald-700',
+          LOW_STOCK: 'bg-amber-100 text-amber-700',
+          OUT_OF_STOCK: 'bg-rose-100 text-rose-700',
+        };
+        const labels = {
+          IN_STOCK: 'In Stock',
+          LOW_STOCK: 'Low Stock',
+          OUT_OF_STOCK: 'Out of Stock',
+        };
+
+        return `
+          <tr class="hover:bg-slate-50/80">
+            <td class="py-3.5 px-4 sm:px-6 align-middle">
+              <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-semibold text-sm">${escapeHtml(product.name.slice(0, 2).toUpperCase())}</div>
+                <div>
+                  <p class="font-semibold text-slate-900">${escapeHtml(product.name)}</p>
+                  <p class="text-xs text-slate-500 mt-0.5 font-mono">${escapeHtml(product.sku)}</p>
+                </div>
+              </div>
+            </td>
+            <td class="py-3.5 px-4 hidden md:table-cell align-middle text-slate-600">${escapeHtml(product.category)}</td>
+            <td class="py-3.5 px-4 text-right hidden sm:table-cell align-middle text-slate-700 font-medium">${escapeHtml(formatCurrency(product.unitCost))}</td>
+            <td class="py-3.5 px-4 align-middle text-center">
+              <div class="inline-flex items-center justify-center gap-2 min-w-[110px]">
+                <button type="button" class="stock-change-btn decrement text-slate-500 hover:text-slate-700 w-8 h-8 rounded-lg border border-slate-200 hover:bg-slate-100 transition" data-id="${escapeHtml(product.id)}" data-delta="-1" aria-label="Decrease stock for ${escapeHtml(product.name)}">−</button>
+                <div class="text-center min-w-[52px]">
+                  <span class="block text-base font-bold text-slate-900">${Number(product.stock || 0)}</span>
+                  <span class="block text-[10px] uppercase tracking-wide text-slate-400">Units</span>
+                </div>
+                <button type="button" class="stock-change-btn increment text-slate-500 hover:text-slate-700 w-8 h-8 rounded-lg border border-slate-200 hover:bg-slate-100 transition" data-id="${escapeHtml(product.id)}" data-delta="1" aria-label="Increase stock for ${escapeHtml(product.name)}">+</button>
+              </div>
+            </td>
+            <td class="py-3.5 px-4 text-right hidden lg:table-cell align-middle text-slate-700 font-medium">${escapeHtml(formatCurrency((Number(product.unitCost) || 0) * Number(product.stock || 0)))}</td>
+            <td class="py-3.5 px-4 hidden sm:table-cell align-middle">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${statusClasses[status]}">${labels[status]}</span>
+            </td>
+            <td class="py-3.5 px-4 sm:px-6 text-right align-middle">
+              <div class="inline-flex items-center justify-end gap-2">
+                <button type="button" class="edit-product-btn inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition" data-id="${escapeHtml(product.id)}" aria-label="Edit ${escapeHtml(product.name)}">
+                  <i data-lucide="pencil" class="w-4 h-4"></i>
+                </button>
+                <button type="button" class="delete-product-btn inline-flex items-center justify-center w-9 h-9 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 transition" data-id="${escapeHtml(product.id)}" aria-label="Delete ${escapeHtml(product.name)}">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      tableBody.querySelectorAll('.edit-product-btn').forEach(button => button.addEventListener('click', () => openProductModal(button.dataset.id)));
+      tableBody.querySelectorAll('.delete-product-btn').forEach(button => button.addEventListener('click', () => deleteProduct(button.dataset.id)));
+      tableBody.querySelectorAll('.stock-change-btn').forEach(button => button.addEventListener('click', () => adjustStock(button.dataset.id, Number(button.dataset.delta), 'Manual stock adjustment')));
+      lucide.createIcons();
+    }
+
+    function renderAuditLog() {
+      const typeFilter = document.getElementById('audit-type-filter').value;
+      const entries = [...state.auditLog].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const filtered = typeFilter === 'ALL' ? entries : entries.filter(item => item.type === typeFilter);
+      const tbody = document.getElementById('audit-table-body');
+      const emptyState = document.getElementById('audit-empty-state');
+
+      tbody.innerHTML = '';
+      if (!filtered.length) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      tbody.innerHTML = filtered.map(entry => {
+        const typeClasses = {
+          CREATED: 'bg-sky-100 text-sky-700',
+          STOCK_IN: 'bg-emerald-100 text-emerald-700',
+          STOCK_OUT: 'bg-rose-100 text-rose-700',
+          ADJUSTED: 'bg-violet-100 text-violet-700',
+        };
+        const labels = {
+          CREATED: 'Created',
+          STOCK_IN: 'Stock In',
+          STOCK_OUT: 'Stock Out',
+          ADJUSTED: 'Edited',
+        };
+        const qtyText = Number(entry.quantityChange || 0) >= 0 ? `+${entry.quantityChange}` : entry.quantityChange;
+        return `
+          <tr>
+            <td class="py-3 px-3 text-slate-500 text-xs font-mono">${escapeHtml(new Date(entry.timestamp).toLocaleString())}</td>
+            <td class="py-3 px-3"><span class="inline-flex px-2 py-1 rounded-full text-[11px] font-semibold ${typeClasses[entry.type] || typeClasses.ADJUSTED}">${labels[entry.type] || 'Updated'}</span></td>
+            <td class="py-3 px-3 font-medium text-slate-800">${escapeHtml(entry.productName)}</td>
+            <td class="py-3 px-3 text-right font-semibold ${Number(entry.quantityChange || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${escapeHtml(qtyText)}</td>
+            <td class="py-3 px-3 text-right font-medium text-slate-700">${escapeHtml(String(entry.balance ?? 0))}</td>
+            <td class="py-3 px-3 hidden md:table-cell text-slate-600">${escapeHtml(entry.note || '—')}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function switchTab(tabName) {
+      const isInventory = tabName === 'inventory';
+      state.activeTab = tabName;
+      document.getElementById('view-inventory').classList.toggle('hidden', !isInventory);
+      document.getElementById('view-audit').classList.toggle('hidden', isInventory);
+      document.getElementById('tab-inventory').setAttribute('aria-selected', String(isInventory));
+      document.getElementById('tab-audit').setAttribute('aria-selected', String(!isInventory));
+      document.getElementById('tab-inventory').className = `tab-btn cursor-pointer select-none px-4 py-2 rounded-lg text-sm ${isInventory ? 'font-semibold bg-white text-slate-900 shadow-sm' : 'font-medium text-slate-600 hover:text-slate-900'} transition flex items-center gap-2`;
+      document.getElementById('tab-audit').className = `tab-btn cursor-pointer select-none px-4 py-2 rounded-lg text-sm ${!isInventory ? 'font-semibold bg-white text-slate-900 shadow-sm' : 'font-medium text-slate-600 hover:text-slate-900'} transition flex items-center gap-2`;
+      saveState();
+    }
+
+    function openProductModal(productId = null) {
+      const modal = document.getElementById('product-modal');
+      const title = document.getElementById('product-modal-title');
+      const form = document.getElementById('product-form');
+      const product = productId ? state.products.find(item => item.id === productId) : null;
+      state.selectedProductId = productId || null;
+      title.textContent = product ? 'Edit Product' : 'Add Product';
+      form.reset();
+
+      if (product) {
+        document.getElementById('product-name').value = product.name;
+        document.getElementById('product-sku').value = product.sku;
+        document.getElementById('product-category').value = product.category;
+        document.getElementById('product-supplier').value = product.supplier;
+        document.getElementById('product-unit-cost').value = product.unitCost;
+        document.getElementById('product-sale-price').value = product.salePrice;
+        document.getElementById('product-stock').value = product.stock;
+        document.getElementById('product-reorder').value = product.reorderLevel;
+        document.getElementById('product-notes').value = product.notes || '';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeProductModal() {
+      document.getElementById('product-modal').classList.add('hidden');
+      state.selectedProductId = null;
+    }
+
+    function openResetModal() {
+      document.getElementById('reset-modal').classList.remove('hidden');
+    }
+
+    function closeResetModal() {
+      document.getElementById('reset-modal').classList.add('hidden');
+    }
+
+    function resetInventoryToDemo() {
+      const fallback = buildDefaultState();
+      state.products = fallback.products;
+      state.auditLog = fallback.auditLog;
+      state.currency = fallback.currency;
+      state.activeTab = fallback.activeTab;
+      state.lowStockFilter = fallback.lowStockFilter;
+      state.searchQuery = fallback.searchQuery;
+      state.statusFilter = fallback.statusFilter;
+      state.categoryFilter = fallback.categoryFilter;
+      state.cashAvailable = fallback.cashAvailable;
+      state.totalProfit = fallback.totalProfit;
+      state.totalCapitalInjected = fallback.totalCapitalInjected;
+      document.getElementById('currency-select').value = state.currency;
+      document.getElementById('search-input').value = state.searchQuery;
+      document.getElementById('status-filter').value = state.statusFilter;
+      document.getElementById('audit-type-filter').value = 'ALL';
+      renderCategoryOptions();
+      updateKpis();
+      renderInventory();
+      renderSaleProducts();
+      renderAuditLog();
+      switchTab('inventory');
+      saveState();
+      closeResetModal();
+      showToast('Demo inventory reset successfully', 'success');
+    }
+
+    function validateProductInput(payload) {
+      if (!payload.name || !payload.sku || !payload.category) {
+        throw new Error('Product name, SKU, and category are required.');
+      }
+      if (payload.unitCost < 0 || payload.salePrice < 0 || payload.stock < 0 || payload.reorderLevel < 0) {
+        throw new Error('Costs and quantities must be zero or greater.');
+      }
+    }
+
+    function saveProductFromForm(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const payload = {
+        id: state.selectedProductId || makeId('prod'),
+        name: sanitizeText(form.productName.value, ''),
+        sku: sanitizeText(form.sku.value, '').toUpperCase(),
+        category: sanitizeText(form.category.value, ''),
+        supplier: sanitizeText(form.supplier.value, 'Unknown Supplier'),
+        unitCost: sanitizeNumber(form.unitCost.value, 0, 0),
+        salePrice: sanitizeNumber(form.salePrice.value, 0, 0),
+        stock: sanitizeNumber(form.stock.value, 0, 0),
+        reorderLevel: sanitizeNumber(form.reorderLevel.value, 0, 0),
+        notes: sanitizeText(form.notes.value, ''),
+      };
+
+      try {
+        validateProductInput(payload);
+      } catch (error) {
+        showToast(error.message || 'Please revise the product details.', 'error');
+        return;
+      }
+
+      const existingIndex = state.products.findIndex(item => item.id === payload.id);
+      const isNew = existingIndex === -1;
+
+      if (isNew) {
+        state.products.push(payload);
+        state.auditLog.push({
+          id: makeId('audit'),
+          type: 'CREATED',
+          productName: payload.name,
+          quantityChange: payload.stock,
+          balance: payload.stock,
+          note: 'New product created',
+          timestamp: new Date().toISOString(),
+        });
+        showToast('Product added successfully', 'success');
+      } else {
+        const previous = state.products[existingIndex];
+        const previousStock = previous.stock;
+        state.products[existingIndex] = { ...previous, ...payload };
+        state.auditLog.push({
+          id: makeId('audit'),
+          type: 'ADJUSTED',
+          productName: payload.name,
+          quantityChange: payload.stock - previousStock,
+          balance: payload.stock,
+          note: 'Manual product edit',
+          timestamp: new Date().toISOString(),
+        });
+        showToast('Product updated successfully', 'success');
+      }
+
+      closeProductModal();
+      renderCategoryOptions();
+      renderInventory();
+      renderSaleProducts();
+      renderAuditLog();
+      updateKpis();
+      saveState();
+    }
+
+    function deleteProduct(productId) {
+      const product = state.products.find(item => item.id === productId);
+      if (!product) return;
+      state.products = state.products.filter(item => item.id !== productId);
+      state.auditLog.push({
+        id: makeId('audit'),
+        type: 'ADJUSTED',
+        productName: product.name,
+        quantityChange: 0,
+        balance: 0,
+        note: 'Product removed from catalog',
+        timestamp: new Date().toISOString(),
+      });
+      renderCategoryOptions();
+      renderInventory();
+      renderSaleProducts();
+      renderAuditLog();
+      updateKpis();
+      saveState();
+      showToast(`${product.name} was removed`, 'info');
+    }
+
+    function adjustStock(productId, delta, reason) {
+      const product = state.products.find(item => item.id === productId);
+      if (!product) return;
+      const previousStock = Number(product.stock || 0);
+      product.stock = Math.max(0, previousStock + delta);
+      const type = delta > 0 ? 'STOCK_IN' : 'STOCK_OUT';
+      state.auditLog.push({
+        id: makeId('audit'),
+        type,
+        productName: product.name,
+        quantityChange: delta,
+        balance: product.stock,
+        note: sanitizeText(reason, 'Manual stock adjustment'),
+        timestamp: new Date().toISOString(),
+      });
+      updateKpis();
+      renderInventory();
+      renderSaleProducts();
+      renderAuditLog();
+      saveState();
+    }
+
+    function completeSale(event) {
+      event.preventDefault();
+      const productId = document.getElementById('sale-product').value;
+      const quantity = Number(document.getElementById('sale-quantity').value);
+      const unitPrice = Number(document.getElementById('sale-unit-price').value);
+      const product = state.products.find(item => item.id === productId);
+      if (!product || !Number.isInteger(quantity) || quantity <= 0 || quantity > product.stock ||
+          !Number.isFinite(unitPrice) || unitPrice < 0) {
+        showToast('Check the product, quantity, and selling price. Quantity cannot exceed available stock.', 'error');
+        return;
+      }
+
+      const revenue = quantity * unitPrice;
+      const profit = quantity * (unitPrice - product.unitCost);
+      product.stock -= quantity;
+      state.cashAvailable += revenue;
+      state.totalProfit += profit;
+      state.auditLog.push({
+        id: makeId('audit'),
+        type: 'STOCK_OUT',
+        productName: product.name,
+        quantityChange: -quantity,
+        balance: product.stock,
+        note: `Sale: ${formatCurrency(revenue)} revenue; ${formatCurrency(profit)} profit`,
+        timestamp: new Date().toISOString(),
+      });
+
+      document.getElementById('sale-form').reset();
+      renderSaleProducts();
+      updateKpis();
+      renderInventory();
+      renderAuditLog();
+      saveState();
+      showToast(`Sale recorded: ${formatCurrency(revenue)} received`, 'success');
+    }
+
+    function addCapital(event) {
+      event.preventDefault();
+      const amount = Number(document.getElementById('capital-amount').value);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        showToast('Enter a capital amount greater than zero.', 'error');
+        return;
+      }
+      state.cashAvailable += amount;
+      state.totalCapitalInjected += amount;
+      document.getElementById('capital-form').reset();
+      updateKpis();
+      saveState();
+      showToast(`${formatCurrency(amount)} added to available cash`, 'success');
+    }
+
+    function clearAuditLog() {
+      state.auditLog = [];
+      renderAuditLog();
+      updateKpis();
+      saveState();
+      showToast('Audit history cleared', 'info');
+    }
+
+    function exportToCSV() {
+      const headers = ['name', 'sku', 'category', 'supplier', 'unitCost', 'salePrice', 'stock', 'reorderLevel', 'notes'];
+      const rows = [headers.join(',')];
+      state.products.forEach(product => {
+        const values = headers.map(field => `"${String(product[field] ?? '').replace(/"/g, '""')}"`);
+        rows.push(values.join(','));
+      });
+      const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'stockflow-inventory.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast('Inventory exported as CSV', 'success');
+    }
+
+    function parseCSVLine(line) {
+      const values = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i += 1) {
+        const char = line[i];
+        if (char === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            current += '"';
+            i += 1;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          values.push(current);
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      values.push(current);
+      return values.map(value => value.trim());
+    }
+
+    function importFromCSV(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const text = String(reader.result || '');
+          const rows = text.split(/\r?\n/).filter(row => row.trim().length > 0);
+          if (rows.length < 2) throw new Error('CSV file is empty or missing rows.');
+
+          const headers = parseCSVLine(rows[0]).map(value => value.toLowerCase());
+          const required = ['name', 'sku', 'category', 'supplier', 'unitcost', 'stock', 'reorderlevel', 'notes'];
+          const missing = required.filter(column => !headers.includes(column));
+          if (missing.length) throw new Error(`Import failed: missing required columns: ${missing.join(', ')}`);
+
+          const imported = rows.slice(1).map(row => {
+            const values = parseCSVLine(row);
+            const record = {};
+            headers.forEach((header, index) => {
+              record[header] = values[index] ?? '';
+            });
+            return {
+              id: makeId('prod'),
+              name: sanitizeText(record.name, 'Imported Product'),
+              sku: sanitizeText(record.sku, `SKU-${Math.random().toString(16).slice(2, 8)}`).toUpperCase(),
+              category: sanitizeText(record.category, 'General'),
+              supplier: sanitizeText(record.supplier, 'Unknown Supplier'),
+              unitCost: sanitizeNumber(record.unitcost, 0, 0),
+              salePrice: sanitizeNumber(record.saleprice, sanitizeNumber(record.unitcost, 0, 0), 0),
+              stock: sanitizeNumber(record.stock, 0, 0),
+              reorderLevel: sanitizeNumber(record.reorderlevel, 0, 0),
+              notes: sanitizeText(record.notes, ''),
+            };
+          }).filter(item => item.name && item.sku && item.category);
+
+          if (!imported.length) throw new Error('No valid rows were found in the CSV file.');
+
+          state.products = imported;
+          state.auditLog.push({
+            id: makeId('audit'),
+            type: 'CREATED',
+            productName: 'CSV Import',
+            quantityChange: imported.length,
+            balance: imported.length,
+            note: `Imported ${imported.length} products from CSV`,
+            timestamp: new Date().toISOString(),
+          });
+          renderCategoryOptions();
+          renderInventory();
+          renderSaleProducts();
+          renderAuditLog();
+          updateKpis();
+          saveState();
+          showToast(`Imported ${imported.length} products`, 'success');
+        } catch (error) {
+          showToast(error.message || 'CSV import failed', 'error');
+        } finally {
+          event.target.value = '';
+        }
+      };
+
+      reader.readAsText(file);
+    }
+
+    function toggleDataMenu(forceState) {
+      const menu = document.getElementById('data-menu');
+      const open = typeof forceState === 'boolean' ? forceState : menu.classList.contains('hidden');
+      menu.classList.toggle('hidden', !open);
+      state.dataMenuOpen = open;
+    }
+
+    function resetFilters() {
+      state.searchQuery = '';
+      state.statusFilter = 'ALL';
+      state.categoryFilter = 'ALL';
+      state.lowStockFilter = false;
+      document.getElementById('search-input').value = '';
+      document.getElementById('status-filter').value = 'ALL';
+      document.getElementById('category-filter').value = 'ALL';
+      document.getElementById('clear-search-btn').classList.add('hidden');
+      renderInventory();
+      saveState();
+    }
+
+    function bindStaticEvents() {
+      document.getElementById('currency-select').addEventListener('change', event => {
+        state.currency = event.target.value;
+        updateKpis();
+        renderInventory();
+        saveState();
+      });
+
+      document.getElementById('toggle-data-menu').addEventListener('click', () => toggleDataMenu());
+      document.addEventListener('click', event => {
+        const container = document.getElementById('data-menu-container');
+        if (container && !container.contains(event.target)) toggleDataMenu(false);
+      });
+      document.getElementById('export-csv-btn').addEventListener('click', exportToCSV);
+      document.getElementById('csv-file-input').addEventListener('change', importFromCSV);
+      document.getElementById('open-reset-modal-btn').addEventListener('click', openResetModal);
+      document.getElementById('confirm-reset-btn').addEventListener('click', resetInventoryToDemo);
+      document.getElementById('cancel-reset-modal-btn').addEventListener('click', closeResetModal);
+      document.getElementById('open-product-modal-btn').addEventListener('click', () => openProductModal());
+      document.getElementById('close-product-modal-btn').addEventListener('click', closeProductModal);
+      document.getElementById('cancel-product-modal-btn').addEventListener('click', closeProductModal);
+      document.getElementById('product-form').addEventListener('submit', saveProductFromForm);
+      document.getElementById('sale-form').addEventListener('submit', completeSale);
+      document.getElementById('sale-product').addEventListener('change', updateSalePrice);
+      document.getElementById('capital-form').addEventListener('submit', addCapital);
+      document.getElementById('clear-search-btn').addEventListener('click', () => {
+        document.getElementById('search-input').value = '';
+        state.searchQuery = '';
+        renderInventory();
+        saveState();
+      });
+      document.getElementById('search-input').addEventListener('input', event => {
+        state.searchQuery = event.target.value;
+        document.getElementById('clear-search-btn').classList.toggle('hidden', !event.target.value.trim().length);
+        renderInventory();
+        saveState();
+      });
+      document.getElementById('category-filter').addEventListener('change', event => {
+        state.categoryFilter = event.target.value;
+        renderInventory();
+        saveState();
+      });
+      document.getElementById('status-filter').addEventListener('change', event => {
+        state.statusFilter = event.target.value;
+        state.lowStockFilter = false;
+        renderInventory();
+        saveState();
+      });
+      document.getElementById('audit-type-filter').addEventListener('change', renderAuditLog);
+      document.getElementById('clear-audit-btn').addEventListener('click', clearAuditLog);
+      document.getElementById('reset-filters-btn').addEventListener('click', resetFilters);
+      document.getElementById('low-stock-card').addEventListener('click', () => {
+        state.lowStockFilter = !state.lowStockFilter;
+        if (state.lowStockFilter) {
+          state.statusFilter = 'LOW_STOCK';
+          document.getElementById('status-filter').value = 'LOW_STOCK';
+        } else {
+          state.statusFilter = 'ALL';
+          document.getElementById('status-filter').value = 'ALL';
+        }
+        renderInventory();
+        saveState();
+      });
+      document.getElementById('tab-inventory').addEventListener('click', () => switchTab('inventory'));
+      document.getElementById('tab-audit').addEventListener('click', () => switchTab('audit'));
+      window.addEventListener('storage', event => {
+        if (event.key === APP_STORAGE_KEY) refreshFromSavedState();
+      });
+      if (liveChannel) {
+        liveChannel.addEventListener('message', refreshFromSavedState);
+      }
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+          closeProductModal();
+          closeResetModal();
+        }
+      });
+    }
+
+    function refreshFromSavedState() {
+      loadState();
+      document.getElementById('currency-select').value = state.currency;
+      document.getElementById('search-input').value = state.searchQuery;
+      document.getElementById('status-filter').value = state.lowStockFilter ? 'LOW_STOCK' : state.statusFilter;
+      document.getElementById('clear-search-btn').classList.toggle('hidden', !state.searchQuery.trim().length);
+      renderCategoryOptions();
+      updateKpis();
+      renderSaleProducts();
+      renderInventory();
+      renderAuditLog();
+    }
+
+    function initialize() {
+      loadState();
+      document.getElementById('currency-select').value = state.currency;
+      document.getElementById('search-input').value = state.searchQuery;
+      document.getElementById('status-filter').value = state.lowStockFilter ? 'LOW_STOCK' : state.statusFilter;
+      document.getElementById('audit-type-filter').value = 'ALL';
+      document.getElementById('clear-search-btn').classList.toggle('hidden', !state.searchQuery.trim().length);
+      renderCategoryOptions();
+      bindStaticEvents();
+      renderSaleProducts();
+      updateKpis();
+      renderInventory();
+      renderAuditLog();
+      switchTab(state.activeTab);
+      lucide.createIcons();
+    }
+
+    initialize();
+  

@@ -107,7 +107,7 @@
   </header>
 
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-    <section aria-label="Inventory Summary Metrics" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <section aria-label="Inventory Summary Metrics" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-start justify-between">
         <div>
           <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Total Products</p>
@@ -146,13 +146,22 @@
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-start justify-between">
         <div class="w-full">
           <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Cash Available</p>
-          <label for="cash-available-input" class="sr-only">Cash available after stocking</label>
-          <input id="cash-available-input" type="number" step="0.01" min="0" value="0"
-            class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xl font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
-          <p id="cash-available-meta" class="text-xs text-slate-500 mt-2">Available after all stock purchases</p>
+          <h2 id="kpi-cash-available" class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1.5 truncate">KSh 0</h2>
+          <p id="cash-available-meta" class="text-xs text-slate-500 mt-1">Increases from sales and capital</p>
         </div>
         <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl ml-3">
           <i data-lucide="banknote" class="w-5 h-5"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Total Profit</p>
+          <h2 id="kpi-total-profit" class="text-2xl sm:text-3xl font-bold text-emerald-700 mt-1.5 truncate">KSh 0</h2>
+          <p class="text-xs text-slate-500 mt-1">Sales minus product cost</p>
+        </div>
+        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+          <i data-lucide="trending-up" class="w-5 h-5"></i>
         </div>
       </div>
 
@@ -186,9 +195,51 @@
 
       <div class="text-xs text-slate-500 flex items-center gap-1.5">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        Auto-saved locally in browser
+        Live sync across tabs on this device
       </div>
     </div>
+
+    <section aria-label="Sales and capital" class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <form id="sale-form" class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Record a Sale</h2>
+          <p class="text-xs text-slate-500 mt-1">Stock, cash, and profit update immediately.</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-1">
+            <label for="sale-product" class="block text-xs font-medium text-slate-600 mb-1.5">Product</label>
+            <select id="sale-product" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
+          </div>
+          <div>
+            <label for="sale-quantity" class="block text-xs font-medium text-slate-600 mb-1.5">Quantity</label>
+            <input id="sale-quantity" type="number" min="1" step="1" value="1" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div>
+            <label for="sale-unit-price" class="block text-xs font-medium text-slate-600 mb-1.5">Selling price per unit</label>
+            <input id="sale-unit-price" type="number" min="0" step="0.01" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+        </div>
+        <div class="flex justify-end">
+          <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition">
+            <i data-lucide="shopping-cart" class="w-4 h-4"></i> Complete Sale
+          </button>
+        </div>
+      </form>
+
+      <form id="capital-form" class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Capital Injection</h2>
+          <p class="text-xs text-slate-500 mt-1">Add funds to available cash.</p>
+        </div>
+        <div>
+          <label for="capital-amount" class="block text-xs font-medium text-slate-600 mb-1.5">Amount</label>
+          <input id="capital-amount" type="number" min="0.01" step="0.01" required placeholder="0.00" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 transition">
+          <i data-lucide="circle-dollar-sign" class="w-4 h-4"></i> Add Capital
+        </button>
+      </form>
+    </section>
 
     <section id="view-inventory" data-panel="inventory" role="tabpanel" class="space-y-4">
       <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row gap-3">
@@ -334,6 +385,10 @@
             <input id="product-unit-cost" name="unitCost" type="number" min="0" step="0.01" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
           </div>
           <div class="space-y-2">
+            <label for="product-sale-price" class="text-sm font-medium text-slate-700">Default Selling Price</label>
+            <input id="product-sale-price" name="salePrice" type="number" min="0" step="0.01" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div class="space-y-2">
             <label for="product-stock" class="text-sm font-medium text-slate-700">Current Stock</label>
             <input id="product-stock" name="stock" type="number" min="0" step="1" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
           </div>
@@ -372,6 +427,7 @@
 
   <script>
     const APP_STORAGE_KEY = 'stockflow-inventory-state-v1';
+    const liveChannel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(APP_STORAGE_KEY);
 
     const DEFAULT_PRODUCTS = [];
 
@@ -389,6 +445,8 @@
       selectedProductId: null,
       dataMenuOpen: false,
       cashAvailable: 0,
+      totalProfit: 0,
+      totalCapitalInjected: 0,
     };
 
     function safeParseJSON(raw) {
@@ -448,6 +506,8 @@
         statusFilter: 'ALL',
         categoryFilter: 'ALL',
         cashAvailable: 0,
+        totalProfit: 0,
+        totalCapitalInjected: 0,
       };
     }
 
@@ -468,6 +528,7 @@
         category: sanitizeText(item.category, 'General'),
         supplier: sanitizeText(item.supplier, 'Unknown Supplier'),
         unitCost: sanitizeNumber(item.unitCost, 0, 0),
+        salePrice: sanitizeNumber(item.salePrice, sanitizeNumber(item.unitCost, 0, 0), 0),
         stock: sanitizeNumber(item.stock, 0, 0),
         reorderLevel: sanitizeNumber(item.reorderLevel, 0, 0),
         notes: sanitizeText(item.notes, ''),
@@ -490,6 +551,8 @@
       state.statusFilter = ['ALL', 'IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'].includes(parsed.statusFilter) ? parsed.statusFilter : 'ALL';
       state.categoryFilter = typeof parsed.categoryFilter === 'string' ? parsed.categoryFilter : 'ALL';
       state.cashAvailable = sanitizeNumber(parsed.cashAvailable, 0, 0);
+      state.totalProfit = sanitizeNumber(parsed.totalProfit, 0);
+      state.totalCapitalInjected = sanitizeNumber(parsed.totalCapitalInjected, 0, 0);
     }
 
     function saveState() {
@@ -503,7 +566,12 @@
         statusFilter: state.statusFilter,
         categoryFilter: state.categoryFilter,
         cashAvailable: state.cashAvailable,
+        totalProfit: state.totalProfit,
+        totalCapitalInjected: state.totalCapitalInjected,
       }));
+      if (liveChannel) {
+        liveChannel.postMessage('state-updated');
+      }
     }
 
     function showToast(message, tone = 'success') {
@@ -538,14 +606,31 @@
       document.getElementById('badge-inventory-count').textContent = String(state.products.length);
       document.getElementById('badge-audit-count').textContent = String(state.auditLog.length);
 
-      const cashInput = document.getElementById('cash-available-input');
-      if (cashInput) {
-        cashInput.value = Number(state.cashAvailable || 0).toFixed(2);
-      }
+      document.getElementById('kpi-cash-available').textContent = formatCurrency(state.cashAvailable);
+      document.getElementById('kpi-total-profit').textContent = formatCurrency(state.totalProfit);
       const cashMeta = document.getElementById('cash-available-meta');
       if (cashMeta) {
-        cashMeta.textContent = `Available after stocking: ${formatCurrency(state.cashAvailable)}`;
+        cashMeta.textContent = `Capital added: ${formatCurrency(state.totalCapitalInjected)}`;
       }
+    }
+
+    function renderSaleProducts(selectedId = document.getElementById('sale-product').value) {
+      const select = document.getElementById('sale-product');
+      const availableProducts = state.products.filter(product => product.stock > 0);
+      select.innerHTML = availableProducts.length
+        ? availableProducts.map(product => `<option value="${escapeHtml(product.id)}">${escapeHtml(product.name)} (${product.stock} in stock)</option>`).join('')
+        : '<option value="">No products in stock</option>';
+      if (availableProducts.some(product => product.id === selectedId)) {
+        select.value = selectedId;
+      }
+      updateSalePrice();
+      select.disabled = !availableProducts.length;
+      document.querySelector('#sale-form button[type="submit"]').disabled = !availableProducts.length;
+    }
+
+    function updateSalePrice() {
+      const product = state.products.find(item => item.id === document.getElementById('sale-product').value);
+      document.getElementById('sale-unit-price').value = product ? Number(product.salePrice || 0).toFixed(2) : '';
     }
 
     function getFilteredProducts() {
@@ -554,7 +639,9 @@
         const matchesSearch = !search || [product.name, product.sku, product.supplier].join(' ').toLowerCase().includes(search);
         const matchesCategory = state.categoryFilter === 'ALL' || product.category === state.categoryFilter;
         const status = getStatus(product);
-        const matchesStatus = state.statusFilter === 'ALL' || status === state.statusFilter;
+        const matchesStatus = state.lowStockFilter
+          ? ['LOW_STOCK', 'OUT_OF_STOCK'].includes(status)
+          : state.statusFilter === 'ALL' || status === state.statusFilter;
         return matchesSearch && matchesCategory && matchesStatus;
       });
     }
@@ -708,6 +795,7 @@
         document.getElementById('product-category').value = product.category;
         document.getElementById('product-supplier').value = product.supplier;
         document.getElementById('product-unit-cost').value = product.unitCost;
+        document.getElementById('product-sale-price').value = product.salePrice;
         document.getElementById('product-stock').value = product.stock;
         document.getElementById('product-reorder').value = product.reorderLevel;
         document.getElementById('product-notes').value = product.notes || '';
@@ -740,6 +828,8 @@
       state.statusFilter = fallback.statusFilter;
       state.categoryFilter = fallback.categoryFilter;
       state.cashAvailable = fallback.cashAvailable;
+      state.totalProfit = fallback.totalProfit;
+      state.totalCapitalInjected = fallback.totalCapitalInjected;
       document.getElementById('currency-select').value = state.currency;
       document.getElementById('search-input').value = state.searchQuery;
       document.getElementById('status-filter').value = state.statusFilter;
@@ -747,6 +837,7 @@
       renderCategoryOptions();
       updateKpis();
       renderInventory();
+      renderSaleProducts();
       renderAuditLog();
       switchTab('inventory');
       saveState();
@@ -758,7 +849,7 @@
       if (!payload.name || !payload.sku || !payload.category) {
         throw new Error('Product name, SKU, and category are required.');
       }
-      if (payload.unitCost < 0 || payload.stock < 0 || payload.reorderLevel < 0) {
+      if (payload.unitCost < 0 || payload.salePrice < 0 || payload.stock < 0 || payload.reorderLevel < 0) {
         throw new Error('Costs and quantities must be zero or greater.');
       }
     }
@@ -773,6 +864,7 @@
         category: sanitizeText(form.category.value, ''),
         supplier: sanitizeText(form.supplier.value, 'Unknown Supplier'),
         unitCost: sanitizeNumber(form.unitCost.value, 0, 0),
+        salePrice: sanitizeNumber(form.salePrice.value, 0, 0),
         stock: sanitizeNumber(form.stock.value, 0, 0),
         reorderLevel: sanitizeNumber(form.reorderLevel.value, 0, 0),
         notes: sanitizeText(form.notes.value, ''),
@@ -819,6 +911,7 @@
       closeProductModal();
       renderCategoryOptions();
       renderInventory();
+      renderSaleProducts();
       renderAuditLog();
       updateKpis();
       saveState();
@@ -839,6 +932,7 @@
       });
       renderCategoryOptions();
       renderInventory();
+      renderSaleProducts();
       renderAuditLog();
       updateKpis();
       saveState();
@@ -862,8 +956,60 @@
       });
       updateKpis();
       renderInventory();
+      renderSaleProducts();
       renderAuditLog();
       saveState();
+    }
+
+    function completeSale(event) {
+      event.preventDefault();
+      const productId = document.getElementById('sale-product').value;
+      const quantity = Number(document.getElementById('sale-quantity').value);
+      const unitPrice = Number(document.getElementById('sale-unit-price').value);
+      const product = state.products.find(item => item.id === productId);
+      if (!product || !Number.isInteger(quantity) || quantity <= 0 || quantity > product.stock ||
+          !Number.isFinite(unitPrice) || unitPrice < 0) {
+        showToast('Check the product, quantity, and selling price. Quantity cannot exceed available stock.', 'error');
+        return;
+      }
+
+      const revenue = quantity * unitPrice;
+      const profit = quantity * (unitPrice - product.unitCost);
+      product.stock -= quantity;
+      state.cashAvailable += revenue;
+      state.totalProfit += profit;
+      state.auditLog.push({
+        id: makeId('audit'),
+        type: 'STOCK_OUT',
+        productName: product.name,
+        quantityChange: -quantity,
+        balance: product.stock,
+        note: `Sale: ${formatCurrency(revenue)} revenue; ${formatCurrency(profit)} profit`,
+        timestamp: new Date().toISOString(),
+      });
+
+      document.getElementById('sale-form').reset();
+      renderSaleProducts();
+      updateKpis();
+      renderInventory();
+      renderAuditLog();
+      saveState();
+      showToast(`Sale recorded: ${formatCurrency(revenue)} received`, 'success');
+    }
+
+    function addCapital(event) {
+      event.preventDefault();
+      const amount = Number(document.getElementById('capital-amount').value);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        showToast('Enter a capital amount greater than zero.', 'error');
+        return;
+      }
+      state.cashAvailable += amount;
+      state.totalCapitalInjected += amount;
+      document.getElementById('capital-form').reset();
+      updateKpis();
+      saveState();
+      showToast(`${formatCurrency(amount)} added to available cash`, 'success');
     }
 
     function clearAuditLog() {
@@ -875,7 +1021,7 @@
     }
 
     function exportToCSV() {
-      const headers = ['name', 'sku', 'category', 'supplier', 'unitCost', 'stock', 'reorderLevel', 'notes'];
+      const headers = ['name', 'sku', 'category', 'supplier', 'unitCost', 'salePrice', 'stock', 'reorderLevel', 'notes'];
       const rows = [headers.join(',')];
       state.products.forEach(product => {
         const values = headers.map(field => `"${String(product[field] ?? '').replace(/"/g, '""')}"`);
@@ -946,6 +1092,7 @@
               category: sanitizeText(record.category, 'General'),
               supplier: sanitizeText(record.supplier, 'Unknown Supplier'),
               unitCost: sanitizeNumber(record.unitcost, 0, 0),
+              salePrice: sanitizeNumber(record.saleprice, sanitizeNumber(record.unitcost, 0, 0), 0),
               stock: sanitizeNumber(record.stock, 0, 0),
               reorderLevel: sanitizeNumber(record.reorderlevel, 0, 0),
               notes: sanitizeText(record.notes, ''),
@@ -966,6 +1113,7 @@
           });
           renderCategoryOptions();
           renderInventory();
+          renderSaleProducts();
           renderAuditLog();
           updateKpis();
           saveState();
@@ -995,6 +1143,7 @@
       document.getElementById('search-input').value = '';
       document.getElementById('status-filter').value = 'ALL';
       document.getElementById('category-filter').value = 'ALL';
+      document.getElementById('clear-search-btn').classList.add('hidden');
       renderInventory();
       saveState();
     }
@@ -1004,13 +1153,6 @@
         state.currency = event.target.value;
         updateKpis();
         renderInventory();
-        saveState();
-      });
-
-      document.getElementById('cash-available-input').addEventListener('input', event => {
-        const value = Number(event.target.value || 0);
-        state.cashAvailable = Number.isFinite(value) ? Math.max(0, value) : 0;
-        updateKpis();
         saveState();
       });
 
@@ -1028,6 +1170,9 @@
       document.getElementById('close-product-modal-btn').addEventListener('click', closeProductModal);
       document.getElementById('cancel-product-modal-btn').addEventListener('click', closeProductModal);
       document.getElementById('product-form').addEventListener('submit', saveProductFromForm);
+      document.getElementById('sale-form').addEventListener('submit', completeSale);
+      document.getElementById('sale-product').addEventListener('change', updateSalePrice);
+      document.getElementById('capital-form').addEventListener('submit', addCapital);
       document.getElementById('clear-search-btn').addEventListener('click', () => {
         document.getElementById('search-input').value = '';
         state.searchQuery = '';
@@ -1047,6 +1192,7 @@
       });
       document.getElementById('status-filter').addEventListener('change', event => {
         state.statusFilter = event.target.value;
+        state.lowStockFilter = event.target.value === 'LOW_STOCK' || event.target.value === 'OUT_OF_STOCK';
         renderInventory();
         saveState();
       });
@@ -1054,14 +1200,20 @@
       document.getElementById('clear-audit-btn').addEventListener('click', clearAuditLog);
       document.getElementById('reset-filters-btn').addEventListener('click', resetFilters);
       document.getElementById('low-stock-card').addEventListener('click', () => {
-        state.statusFilter = 'LOW_STOCK';
-        state.lowStockFilter = true;
-        document.getElementById('status-filter').value = 'LOW_STOCK';
+        state.lowStockFilter = !state.lowStockFilter;
+        state.statusFilter = state.lowStockFilter ? 'LOW_STOCK' : 'ALL';
+        document.getElementById('status-filter').value = state.statusFilter;
         renderInventory();
         saveState();
       });
       document.getElementById('tab-inventory').addEventListener('click', () => switchTab('inventory'));
       document.getElementById('tab-audit').addEventListener('click', () => switchTab('audit'));
+      window.addEventListener('storage', event => {
+        if (event.key === APP_STORAGE_KEY) refreshFromSavedState();
+      });
+      if (liveChannel) {
+        liveChannel.addEventListener('message', refreshFromSavedState);
+      }
       document.addEventListener('keydown', event => {
         if (event.key === 'Escape') {
           closeProductModal();
@@ -1070,16 +1222,29 @@
       });
     }
 
+    function refreshFromSavedState() {
+      loadState();
+      document.getElementById('currency-select').value = state.currency;
+      document.getElementById('search-input').value = state.searchQuery;
+      document.getElementById('status-filter').value = state.lowStockFilter ? 'LOW_STOCK' : state.statusFilter;
+      document.getElementById('clear-search-btn').classList.toggle('hidden', !state.searchQuery.trim().length);
+      renderCategoryOptions();
+      updateKpis();
+      renderSaleProducts();
+      renderInventory();
+      renderAuditLog();
+    }
+
     function initialize() {
       loadState();
       document.getElementById('currency-select').value = state.currency;
       document.getElementById('search-input').value = state.searchQuery;
-      document.getElementById('status-filter').value = state.statusFilter;
+      document.getElementById('status-filter').value = state.lowStockFilter ? 'LOW_STOCK' : state.statusFilter;
       document.getElementById('audit-type-filter').value = 'ALL';
       document.getElementById('clear-search-btn').classList.toggle('hidden', !state.searchQuery.trim().length);
-      document.getElementById('cash-available-input').value = Number(state.cashAvailable || 0).toFixed(2);
       renderCategoryOptions();
       bindStaticEvents();
+      renderSaleProducts();
       updateKpis();
       renderInventory();
       renderAuditLog();

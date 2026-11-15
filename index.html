@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://unpkg.com https://fonts.googleapis.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://unpkg.com https://cdn.jsdelivr.net https://fonts.googleapis.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://nmbfjififpyxttuqtesg.supabase.co wss://nmbfjififpyxttuqtesg.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';">
   <title>StockFlow — Modern Inventory & Stock Management</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,6 +31,8 @@
       },
     };
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     .sr-only {
       position: absolute;
@@ -47,8 +49,38 @@
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen flex flex-col">
   <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+  <div id="auth-screen" role="dialog" aria-modal="true" aria-labelledby="auth-title" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-50 p-4">
+    <section class="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl" aria-labelledby="auth-title">
+      <div class="mb-5">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">StockFlow</p>
+        <h2 id="auth-title" class="mt-1 text-xl font-bold text-slate-900">Sign in to your inventory</h2>
+        <p class="mt-1 text-sm text-slate-500">Your inventory and activity are stored. You will need to sign in again after closing this tab.</p>
+      </div>
+      <form id="auth-form" class="space-y-4">
+        <div>
+          <label for="auth-email" class="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
+          <input id="auth-email" type="email" autocomplete="email" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+        <div>
+          <label for="auth-password" class="mb-1.5 block text-sm font-medium text-slate-700">Password</label>
+          <input id="auth-password" type="password" autocomplete="current-password" minlength="6" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+        <div id="auth-confirm-password-wrap" class="hidden">
+          <label for="auth-confirm-password" class="mb-1.5 block text-sm font-medium text-slate-700">Confirm password</label>
+          <input id="auth-confirm-password" type="password" autocomplete="new-password" minlength="6" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="auth-submit-btn" type="submit" class="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Sign in</button>
+          <button id="auth-mode-toggle" type="button" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Create account</button>
+        </div>
+      </form>
+      <p id="auth-message" role="status" aria-live="polite" class="mt-4 text-sm text-slate-600">Sign in to load the shared inventory.</p>
+      <p id="auth-user-id" class="mt-2 hidden break-all rounded-lg bg-slate-50 p-3 font-mono text-xs text-slate-600"></p>
+      <button id="auth-sign-out-btn" type="button" class="mt-4 hidden text-sm font-semibold text-rose-600 hover:text-rose-700">Sign out</button>
+    </section>
+  </div>
 
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+  <header inert class="bg-white border-b border-slate-200 sticky top-0 z-30">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
       <div class="flex items-center gap-3">
         <div class="bg-brand-600 text-white p-2 rounded-xl shadow-sm">
@@ -61,6 +93,7 @@
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3">
+        <button id="sign-out-btn" type="button" class="hidden rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">Sign out</button>
         <div class="relative">
           <select id="currency-select" aria-label="Select Currency"
             class="appearance-none bg-slate-100 hover:bg-slate-200/70 text-slate-700 text-xs sm:text-sm font-semibold rounded-xl pl-3 pr-8 py-2 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition cursor-pointer">
@@ -106,7 +139,7 @@
     </div>
   </header>
 
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+  <main inert class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
     <section aria-label="Inventory Summary Metrics" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-start justify-between">
         <div>
@@ -147,7 +180,7 @@
         <div class="w-full">
           <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Cash Available</p>
           <h2 id="kpi-cash-available" class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1.5 truncate">KSh 0</h2>
-          <p id="cash-available-meta" class="text-xs text-slate-500 mt-1">Increases from sales and capital</p>
+          <p id="cash-available-meta" class="text-xs text-slate-500 mt-1">Sales and capital less stock purchases and expenses</p>
         </div>
         <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl ml-3">
           <i data-lucide="banknote" class="w-5 h-5"></i>
@@ -156,9 +189,9 @@
 
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-start justify-between">
         <div>
-          <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Total Profit</p>
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Net Profit</p>
           <h2 id="kpi-total-profit" class="text-2xl sm:text-3xl font-bold text-emerald-700 mt-1.5 truncate">KSh 0</h2>
-          <p class="text-xs text-slate-500 mt-1">Sales minus product cost</p>
+          <p class="text-xs text-slate-500 mt-1">Sales less sold stock cost and expenses</p>
         </div>
         <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
           <i data-lucide="trending-up" class="w-5 h-5"></i>
@@ -241,6 +274,75 @@
       </form>
     </section>
 
+    <section aria-label="Expenses and stock purchases" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <form id="expense-form" class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Record an Expense</h2>
+          <p class="text-xs text-slate-500 mt-1">Track rent, utilities, transport, or another business cost.</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="expense-category" class="block text-xs font-medium text-slate-600 mb-1.5">Expense category</label>
+            <input id="expense-category" type="text" list="expense-category-suggestions" required maxlength="80" placeholder="e.g. Rent" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <datalist id="expense-category-suggestions">
+              <option value="Rent"></option>
+              <option value="Utilities"></option>
+              <option value="Transport"></option>
+              <option value="Wages"></option>
+              <option value="Repairs"></option>
+              <option value="Other"></option>
+            </datalist>
+          </div>
+          <div>
+            <label for="expense-amount" class="block text-xs font-medium text-slate-600 mb-1.5">Amount</label>
+            <input id="expense-amount" type="number" min="0.01" step="0.01" required placeholder="0.00" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div class="sm:col-span-2">
+            <label for="expense-description" class="block text-xs font-medium text-slate-600 mb-1.5">Details (optional)</label>
+            <input id="expense-description" type="text" maxlength="160" placeholder="Payee or short description" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <p id="expense-cash-available" class="text-xs text-slate-500">Available cash: KSh 0</p>
+          <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 transition">
+            <i data-lucide="receipt" class="w-4 h-4"></i> Record Expense
+          </button>
+        </div>
+      </form>
+
+      <form id="stock-purchase-form" class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Restock a Product</h2>
+          <p class="text-xs text-slate-500 mt-1">Add purchased units and deduct the cost from available cash.</p>
+        </div>
+        <div>
+          <label for="stock-purchase-product" class="block text-xs font-medium text-slate-600 mb-1.5">Product</label>
+          <select id="stock-purchase-product" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"></select>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="stock-purchase-quantity" class="block text-xs font-medium text-slate-600 mb-1.5">Quantity</label>
+            <input id="stock-purchase-quantity" type="number" min="1" step="1" value="1" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div>
+            <label for="stock-purchase-unit-cost" class="block text-xs font-medium text-slate-600 mb-1.5">Purchase cost per unit</label>
+            <input id="stock-purchase-unit-cost" type="number" min="0.01" step="0.01" required placeholder="0.00" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+        </div>
+        <p class="text-xs text-slate-500">The product's unit cost is recalculated using weighted average for future profit estimates.</p>
+        <div>
+          <label for="stock-purchase-note" class="block text-xs font-medium text-slate-600 mb-1.5">Details (optional)</label>
+          <input id="stock-purchase-note" type="text" maxlength="160" placeholder="Supplier or purchase reference" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <p id="stock-purchase-total" class="text-xs font-medium text-slate-600">Total purchase: KSh 0</p>
+          <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition">
+            <i data-lucide="package-plus" class="w-4 h-4"></i> Buy Stock
+          </button>
+        </div>
+      </form>
+    </section>
+
     <section id="view-inventory" data-panel="inventory" role="tabpanel" class="space-y-4">
       <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row gap-3">
         <div class="relative flex-1">
@@ -308,15 +410,18 @@
       <div class="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
           <div>
-            <h3 class="text-base font-bold text-slate-900">Stock Movement & Audit History</h3>
-            <p class="text-xs text-slate-500 mt-0.5">Every stock-in, stock-out, product creation, and edit is automatically recorded.</p>
+            <h3 class="text-base font-bold text-slate-900">Inventory & Money History</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Stock changes, purchases, sales, expenses, and capital are recorded here.</p>
           </div>
           <div class="flex items-center gap-2">
             <select id="audit-type-filter"
               class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
               <option value="ALL">All Movements</option>
+              <option value="PURCHASE">Stock Purchases</option>
               <option value="STOCK_IN">Stock In (+)</option>
               <option value="STOCK_OUT">Stock Out (-)</option>
+              <option value="EXPENSE">Expenses</option>
+              <option value="CAPITAL_IN">Capital In</option>
               <option value="CREATED">New Products</option>
               <option value="ADJUSTED">Manual Edits</option>
             </select>
@@ -333,9 +438,10 @@
               <tr class="border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <th class="py-3 px-3">Timestamp</th>
                 <th class="py-3 px-3">Type</th>
-                <th class="py-3 px-3">Product</th>
+                <th class="py-3 px-3">Product / Category</th>
                 <th class="py-3 px-3 text-right">Qty Change</th>
-                <th class="py-3 px-3 text-right">Balance</th>
+                <th class="py-3 px-3 text-right">Cash Impact</th>
+                <th class="py-3 px-3 text-right">Stock / Cash Balance</th>
                 <th class="py-3 px-3 hidden md:table-cell">Note / Reason</th>
               </tr>
             </thead>
@@ -344,7 +450,7 @@
         </div>
 
         <div id="audit-empty-state" class="hidden py-12 text-center">
-          <p class="text-sm text-slate-500">No stock movements logged yet. Adjust stock levels using the + / - buttons to see real-time audit logs.</p>
+          <p class="text-sm text-slate-500">No activity recorded yet. Sales, purchases, expenses, and stock changes will appear here.</p>
         </div>
       </div>
     </section>
@@ -424,10 +530,334 @@
       </div>
     </div>
   </div>
+  <div id="content-list"></div>
 
   <script>
+    const SUPABASE_URL = "https://nmbfjififpyxttuqtesg.supabase.co";
+
+    const SUPABASE_KEY = "sb_publishable_v9VZYsI834BxadlyFpApdA_CE7qshiQ";
+
+    const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY,
+    {
+        auth: {
+            persistSession: true,
+            storage: window.sessionStorage
+        }
+    }
+);
+
+async function loadContent() {
+    const { data, error } = await supabaseClient
+        .from("content")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        console.error("Loading failed:", error.message);
+        return;
+    }
+
+    const container = document.getElementById("content-list");
+
+    if (!container) return;
+
+    container.replaceChildren();
+
+    data.forEach(item => {
+        const card = document.createElement("article");
+
+        const heading = document.createElement("h3");
+        heading.textContent = item.title;
+
+        const description = document.createElement("p");
+        description.textContent = item.body || "";
+
+        const category = document.createElement("small");
+        category.textContent = item.type;
+
+        card.append(heading, description, category);
+        container.appendChild(card);
+    });
+}
+
+// Load content when the website opens
+loadContent();
+
+// Listen for database changes
+const contentLiveChannel = supabaseClient
+    .channel("website-live-updates")
+    .on(
+        "postgres_changes",
+        {
+            event: "*",
+            schema: "public",
+            table: "content"
+        },
+        () => {
+            console.log("Website content changed!");
+            loadContent();
+        }
+    )
+    .subscribe((status) => {
+        console.log("Live connection:", status);
+    });
+
+    async function uploadFile(file) {
+    const filePath = `${crypto.randomUUID()}-${file.name}`;
+
+    const { data, error } = await supabaseClient
+        .storage
+        .from("content-files")
+        .upload(filePath, file);
+
+    if (error) {
+        console.error(error.message);
+        return;
+    }
+
+    const { data: urlData } = supabaseClient
+        .storage
+        .from("content-files")
+        .getPublicUrl(data.path);
+
+    console.log("Uploaded:", urlData.publicUrl);
+
+    return data.path;
+}
+
+let authMode = 'signin';
+
+function setAuthMode(mode) {
+    authMode = mode;
+    const creatingAccount = mode === 'signup';
+    document.getElementById('auth-title').textContent = creatingAccount ? 'Create your account' : 'Sign in to your inventory';
+    document.getElementById('auth-submit-btn').textContent = creatingAccount ? 'Create account' : 'Sign in';
+    document.getElementById('auth-mode-toggle').textContent = creatingAccount ? 'Already have an account? Sign in' : 'Create account';
+    document.getElementById('auth-confirm-password-wrap').classList.toggle('hidden', !creatingAccount);
+    document.getElementById('auth-confirm-password').required = creatingAccount;
+    document.getElementById('auth-password').autocomplete = creatingAccount ? 'new-password' : 'current-password';
+    document.getElementById('auth-confirm-password').value = '';
+    setAuthMessage(creatingAccount ? 'Use an email address and create a password of at least 6 characters.' : 'Sign in to load the shared inventory.');
+}
+
+function setAuthMessage(message, tone = 'info') {
+    const element = document.getElementById('auth-message');
+    const tones = {
+        info: 'text-slate-600',
+        success: 'text-emerald-700',
+        error: 'text-rose-700',
+    };
+    element.className = `mt-4 text-sm ${tones[tone] || tones.info}`;
+    element.textContent = message;
+}
+
+function showAuthUserId(userId) {
+    const element = document.getElementById('auth-user-id');
+    element.textContent = userId
+        ? `Account ID: ${userId}. An administrator must add this ID to inventory_members before this account can access the shared inventory.`
+        : '';
+    element.classList.toggle('hidden', !userId);
+}
+
+function setApplicationInert(isInert) {
+    [document.querySelector('header'), document.querySelector('main')].forEach(element => {
+        if (isInert) {
+            element.setAttribute('inert', '');
+        } else {
+            element.removeAttribute('inert');
+        }
+    });
+}
+
+async function handleAuthSession(session) {
+    const authScreen = document.getElementById('auth-screen');
+    const overlaySignOut = document.getElementById('auth-sign-out-btn');
+    const headerSignOut = document.getElementById('sign-out-btn');
+
+    if (!session) {
+        currentUser = null;
+        inventoryLoaded = false;
+        await stopInventoryRealtime();
+        setApplicationInert(true);
+        headerSignOut.classList.add('hidden');
+        overlaySignOut.classList.add('hidden');
+        showAuthUserId('');
+        authScreen.classList.remove('hidden');
+        setAuthMessage('Sign in to load the shared inventory.');
+        return;
+    }
+
+    currentUser = session.user;
+    const { data: membership, error: membershipError } = await supabaseClient
+        .from('inventory_members')
+        .select('user_id')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+    if (membershipError) {
+        inventoryLoaded = false;
+        await stopInventoryRealtime();
+        setApplicationInert(true);
+        headerSignOut.classList.add('hidden');
+        overlaySignOut.classList.remove('hidden');
+        authScreen.classList.remove('hidden');
+        setAuthMessage(`Could not check database access: ${membershipError.message}. Run supabase-schema.sql in Supabase SQL Editor, then add this account to inventory_members.`, 'error');
+        showAuthUserId(currentUser.id);
+        return;
+    }
+
+    if (!membership) {
+        inventoryLoaded = false;
+        await stopInventoryRealtime();
+        setApplicationInert(true);
+        headerSignOut.classList.add('hidden');
+        overlaySignOut.classList.remove('hidden');
+        authScreen.classList.remove('hidden');
+        setAuthMessage('This account is not a member of the shared inventory.', 'error');
+        showAuthUserId(currentUser.id);
+        return;
+    }
+
+    try {
+        await loadStateFromDatabase();
+    } catch (error) {
+        inventoryLoaded = false;
+        await stopInventoryRealtime();
+        setApplicationInert(true);
+        headerSignOut.classList.add('hidden');
+        overlaySignOut.classList.remove('hidden');
+        authScreen.classList.remove('hidden');
+        setAuthMessage(error.message || 'Could not load inventory from Supabase.', 'error');
+        console.error('Could not load shared inventory:', error);
+        return;
+    }
+
+    inventoryLoaded = true;
+    startInventoryRealtime();
+    setApplicationInert(false);
+    showAuthUserId('');
+    authScreen.classList.add('hidden');
+    overlaySignOut.classList.add('hidden');
+    headerSignOut.classList.remove('hidden');
+    setAuthMessage(`Signed in as ${currentUser.email || currentUser.id}.`, 'success');
+
+    if (!staticEventsBound) {
+        bindStaticEvents();
+        staticEventsBound = true;
+    }
+
+    document.getElementById('currency-select').value = state.currency;
+    document.getElementById('search-input').value = state.searchQuery;
+    document.getElementById('status-filter').value = state.lowStockFilter ? 'LOW_STOCK' : state.statusFilter;
+    document.getElementById('audit-type-filter').value = 'ALL';
+    document.getElementById('clear-search-btn').classList.toggle('hidden', !state.searchQuery.trim().length);
+    renderCategoryOptions();
+    renderSaleProducts();
+    updateKpis();
+    renderInventory();
+    renderAuditLog();
+    switchTab(state.activeTab);
+    lucide.createIcons();
+}
+
+function bindAuthEvents() {
+    document.getElementById('auth-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const email = document.getElementById('auth-email').value.trim();
+        const password = document.getElementById('auth-password').value;
+        try {
+            if (authMode === 'signup') {
+                if (password !== document.getElementById('auth-confirm-password').value) {
+                    setAuthMessage('The passwords do not match.', 'error');
+                    return;
+                }
+                setAuthMessage('Creating account...');
+                const { data, error } = await supabaseClient.auth.signUp({ email, password });
+                if (error) throw error;
+                if (data.session) {
+                    await handleAuthSession(data.session);
+                } else {
+                    showAuthUserId(data.user && data.user.id);
+                    setAuthMessage('Account created. Confirm your email if requested, then sign in. An administrator must add the account ID above to inventory_members before it can access the shared inventory.', 'success');
+                }
+                return;
+            }
+
+            setAuthMessage('Signing in...');
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            await handleAuthSession(data.session);
+        } catch (error) {
+            const action = authMode === 'signup' ? 'Account creation' : 'Sign-in';
+            setAuthMessage(error.message || `${action} failed.`, 'error');
+            console.error(`${action} failed:`, error);
+        }
+    });
+    document.getElementById('auth-mode-toggle').addEventListener('click', () => {
+        setAuthMode(authMode === 'signup' ? 'signin' : 'signup');
+    });
+
+    const signOut = async () => {
+        if (inventoryLoaded) {
+            if (stateSaveTimer !== null) {
+                clearTimeout(stateSaveTimer);
+                stateSaveTimer = null;
+            }
+            if (!await saveState()) return;
+        }
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) {
+            setAuthMessage(`Sign-out failed: ${error.message}`, 'error');
+            console.error('Sign-out failed:', error);
+            return;
+        }
+        await handleAuthSession(null);
+    };
+    document.getElementById('sign-out-btn').addEventListener('click', signOut);
+    document.getElementById('auth-sign-out-btn').addEventListener('click', signOut);
+}
+
+async function addContent(title, body, type) {
+
+    const { data: userData } =
+        await supabaseClient.auth.getUser();
+
+    if (!userData.user) {
+        alert("Please log in first.");
+        return;
+    }
+
+    const { error } = await supabaseClient
+        .from("content")
+        .insert({
+            title: title,
+            body: body,
+            type: type,
+            published: true,
+            created_by: userData.user.id
+        });
+
+    if (error) {
+        alert(error.message);
+        return;
+    }
+
+    alert("Content added successfully!");
+}
+
     const APP_STORAGE_KEY = 'stockflow-inventory-state-v1';
+    const INVENTORY_ROW_ID = 'shared';
     const liveChannel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(APP_STORAGE_KEY);
+    let currentUser = null;
+    let inventoryLoaded = false;
+    let databaseVersion = 0;
+    let staticEventsBound = false;
+    let pendingStateWrite = Promise.resolve();
+    let stateSaveTimer = null;
+    let warnedAboutUnmergedLocalState = false;
+    let inventoryRealtimeChannel = null;
 
     const DEFAULT_PRODUCTS = [];
 
@@ -447,6 +877,7 @@
       cashAvailable: 0,
       totalProfit: 0,
       totalCapitalInjected: 0,
+      totalExpenses: 0,
     };
 
     function safeParseJSON(raw) {
@@ -508,12 +939,11 @@
         cashAvailable: 0,
         totalProfit: 0,
         totalCapitalInjected: 0,
+        totalExpenses: 0,
       };
     }
 
-    function loadState() {
-      const raw = localStorage.getItem(APP_STORAGE_KEY);
-      const parsed = raw ? safeParseJSON(raw) : null;
+    function applySavedState(parsed) {
       const fallback = buildDefaultState();
 
       if (!parsed || !Array.isArray(parsed.products)) {
@@ -536,10 +966,12 @@
 
       state.auditLog = Array.isArray(parsed.auditLog) ? parsed.auditLog.map(entry => ({
         id: sanitizeText(entry.id, makeId('audit')),
-        type: ['CREATED', 'STOCK_IN', 'STOCK_OUT', 'ADJUSTED'].includes(entry.type) ? entry.type : 'ADJUSTED',
+        type: ['CREATED', 'STOCK_IN', 'STOCK_OUT', 'ADJUSTED', 'PURCHASE', 'EXPENSE', 'CAPITAL_IN'].includes(entry.type) ? entry.type : 'ADJUSTED',
         productName: sanitizeText(entry.productName, 'Unknown Product'),
         quantityChange: sanitizeNumber(entry.quantityChange, 0),
         balance: sanitizeNumber(entry.balance, 0),
+        balanceType: ['stock', 'cash'].includes(entry.balanceType) ? entry.balanceType : 'stock',
+        amount: sanitizeNumber(entry.amount, 0),
         note: sanitizeText(entry.note, ''),
         timestamp: typeof entry.timestamp === 'string' ? entry.timestamp : new Date().toISOString(),
       })) : structuredClone(DEFAULT_AUDIT_LOG);
@@ -553,10 +985,11 @@
       state.cashAvailable = sanitizeNumber(parsed.cashAvailable, 0, 0);
       state.totalProfit = sanitizeNumber(parsed.totalProfit, 0);
       state.totalCapitalInjected = sanitizeNumber(parsed.totalCapitalInjected, 0, 0);
+      state.totalExpenses = sanitizeNumber(parsed.totalExpenses, 0, 0);
     }
 
-    function saveState() {
-      localStorage.setItem(APP_STORAGE_KEY, JSON.stringify({
+    function getPersistedState() {
+      return {
         products: state.products,
         auditLog: state.auditLog,
         currency: state.currency,
@@ -568,12 +1001,143 @@
         cashAvailable: state.cashAvailable,
         totalProfit: state.totalProfit,
         totalCapitalInjected: state.totalCapitalInjected,
-      }));
-      if (liveChannel) {
-        liveChannel.postMessage('state-updated');
-      }
+        totalExpenses: state.totalExpenses,
+      };
     }
 
+    async function loadStateFromDatabase() {
+      const { data, error } = await supabaseClient
+        .from('inventory_state')
+        .select('state, version')
+        .eq('id', INVENTORY_ROW_ID)
+        .maybeSingle();
+
+      if (error) throw new Error(`Could not load inventory from Supabase: ${error.message}`);
+      if (data) {
+        if (!data.state || !Array.isArray(data.state.products)) {
+          throw new Error('The saved inventory record has an invalid state payload.');
+        }
+        applySavedState(data.state);
+        databaseVersion = Number(data.version);
+        if (!warnedAboutUnmergedLocalState && localStorage.getItem(APP_STORAGE_KEY)) {
+          warnedAboutUnmergedLocalState = true;
+          showToast('Loaded the shared database; unmerged browser-only data was left untouched.', 'info');
+        }
+        return;
+      }
+
+      const raw = localStorage.getItem(APP_STORAGE_KEY);
+      const legacyState = raw ? safeParseJSON(raw) : null;
+      const initialState = legacyState && Array.isArray(legacyState.products) ? legacyState : buildDefaultState();
+      applySavedState(initialState);
+
+      const { error: insertError } = await supabaseClient
+        .from('inventory_state')
+        .insert({
+          id: INVENTORY_ROW_ID,
+          state: getPersistedState(),
+          updated_by: currentUser.id,
+          version: 1,
+        });
+
+      if (insertError && insertError.code === '23505') {
+        const { data: existingState, error: reloadError } = await supabaseClient
+          .from('inventory_state')
+          .select('state, version')
+          .eq('id', INVENTORY_ROW_ID)
+          .maybeSingle();
+        if (reloadError) throw new Error(`Could not reload shared inventory: ${reloadError.message}`);
+        if (!existingState) throw new Error(`Could not initialize shared inventory: ${insertError.message}`);
+        if (!existingState.state || !Array.isArray(existingState.state.products)) {
+          throw new Error('The saved inventory record has an invalid state payload.');
+        }
+        applySavedState(existingState.state);
+        databaseVersion = Number(existingState.version);
+        if (legacyState && Array.isArray(legacyState.products)) {
+          showToast('Another session created the shared inventory first; local data was not imported.', 'info');
+        }
+        return;
+      }
+      if (insertError) throw new Error(`Could not initialize shared inventory: ${insertError.message}`);
+      if (legacyState && Array.isArray(legacyState.products)) {
+        localStorage.removeItem(APP_STORAGE_KEY);
+        showToast('Previous browser inventory imported into Supabase.', 'success');
+      }
+      databaseVersion = 1;
+    }
+
+    function saveState() {
+      if (!currentUser) return Promise.resolve(false);
+      const persistedState = getPersistedState();
+      pendingStateWrite = pendingStateWrite.then(async () => {
+          const { data, error } = await supabaseClient.rpc('save_inventory_state', {
+            p_state: persistedState,
+            p_expected_version: databaseVersion,
+          });
+          if (error) {
+            const saveError = new Error(error.message);
+            saveError.code = error.code;
+            throw saveError;
+          }
+          const nextVersion = Number(data);
+          if (!Number.isSafeInteger(nextVersion) || nextVersion <= databaseVersion) {
+            throw new Error('Supabase returned an invalid inventory version.');
+          }
+          databaseVersion = nextVersion;
+        if (liveChannel) liveChannel.postMessage('state-updated');
+          return true;
+      }).catch(error => {
+        console.error('Failed to save inventory to Supabase:', error);
+          if (error.code === '40001') {
+            refreshFromSavedState();
+            showToast('Another member changed the inventory. Latest data was reloaded; please retry your change.', 'error');
+          } else {
+            showToast(`Save failed: ${error.message}`, 'error');
+          }
+          return false;
+      });
+      return pendingStateWrite;
+    }
+
+    function scheduleSaveState() {
+      clearTimeout(stateSaveTimer);
+      stateSaveTimer = setTimeout(() => {
+        stateSaveTimer = null;
+        saveState();
+      }, 400);
+    }
+    function startInventoryRealtime() {
+      if (inventoryRealtimeChannel) return;
+
+      inventoryRealtimeChannel = supabaseClient
+        .channel('shared-inventory-updates')
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'inventory_state',
+          filter: `id=eq.${INVENTORY_ROW_ID}`,
+        }, payload => {
+          const newVersion = Number(payload.new.version);
+          if (!currentUser || newVersion <= databaseVersion) return;
+          refreshFromSavedState();
+        })
+        .subscribe(status => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error('Inventory Realtime subscription failed:', status);
+            showToast('Live database sync is unavailable; changes will still be saved.', 'error');
+          }
+        });
+    }
+
+    async function stopInventoryRealtime() {
+      if (!inventoryRealtimeChannel) return;
+      const channel = inventoryRealtimeChannel;
+      inventoryRealtimeChannel = null;
+      const status = await supabaseClient.removeChannel(channel);
+      if (status === 'error' || status === 'timed out') {
+        console.error('Could not stop inventory Realtime channel:', status);
+      }
+    }
     function showToast(message, tone = 'success') {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
@@ -607,11 +1171,41 @@
       document.getElementById('badge-audit-count').textContent = String(state.auditLog.length);
 
       document.getElementById('kpi-cash-available').textContent = formatCurrency(state.cashAvailable);
-      document.getElementById('kpi-total-profit').textContent = formatCurrency(state.totalProfit);
+      const profitKpi = document.getElementById('kpi-total-profit');
+      profitKpi.textContent = formatCurrency(state.totalProfit);
+      profitKpi.classList.toggle('text-rose-700', state.totalProfit < 0);
+      profitKpi.classList.toggle('text-emerald-700', state.totalProfit >= 0);
       const cashMeta = document.getElementById('cash-available-meta');
       if (cashMeta) {
-        cashMeta.textContent = `Capital added: ${formatCurrency(state.totalCapitalInjected)}`;
+        cashMeta.textContent = `Capital added: ${formatCurrency(state.totalCapitalInjected)} | Expenses: ${formatCurrency(state.totalExpenses)}`;
       }
+      document.getElementById('expense-cash-available').textContent = `Available cash: ${formatCurrency(state.cashAvailable)}`;
+      updateStockPurchaseTotal();
+    }
+
+    function renderStockPurchaseProducts(selectedId = document.getElementById('stock-purchase-product').value) {
+      const select = document.getElementById('stock-purchase-product');
+      const previousId = select.value;
+      select.innerHTML = state.products.length
+        ? state.products.map(product => `<option value="${escapeHtml(product.id)}">${escapeHtml(product.name)} (${product.stock} in stock)</option>`).join('')
+        : '<option value="">Add a product before recording a stock purchase</option>';
+      if (state.products.some(product => product.id === selectedId)) {
+        select.value = selectedId;
+      } else if (state.products.length) {
+        select.value = state.products[0].id;
+      }
+      select.disabled = !state.products.length;
+      document.querySelector('#stock-purchase-form button[type="submit"]').disabled = !state.products.length;
+      if (select.value !== previousId && select.value) updateStockPurchaseCostFromProduct();
+    }
+
+    function updateStockPurchaseTotal() {
+      const quantity = Number(document.getElementById('stock-purchase-quantity').value);
+      const unitCost = Number(document.getElementById('stock-purchase-unit-cost').value);
+      const total = Number.isInteger(quantity) && quantity > 0 && Number.isFinite(unitCost) && unitCost > 0
+        ? Math.round((quantity * unitCost + Number.EPSILON) * 100) / 100
+        : 0;
+      document.getElementById('stock-purchase-total').textContent = `Total purchase: ${formatCurrency(total)}`;
     }
 
     function renderSaleProducts(selectedId = document.getElementById('sale-product').value) {
@@ -626,6 +1220,7 @@
       updateSalePrice();
       select.disabled = !availableProducts.length;
       document.querySelector('#sale-form button[type="submit"]').disabled = !availableProducts.length;
+      renderStockPurchaseProducts();
     }
 
     function updateSalePrice() {
@@ -747,28 +1342,39 @@
           STOCK_IN: 'bg-emerald-100 text-emerald-700',
           STOCK_OUT: 'bg-rose-100 text-rose-700',
           ADJUSTED: 'bg-violet-100 text-violet-700',
+          PURCHASE: 'bg-blue-100 text-blue-700',
+          EXPENSE: 'bg-rose-100 text-rose-700',
+          CAPITAL_IN: 'bg-emerald-100 text-emerald-700',
         };
         const labels = {
           CREATED: 'Created',
           STOCK_IN: 'Stock In',
           STOCK_OUT: 'Stock Out',
           ADJUSTED: 'Edited',
+          PURCHASE: 'Stock Purchase',
+          EXPENSE: 'Expense',
+          CAPITAL_IN: 'Capital In',
         };
         const qtyText = Number(entry.quantityChange || 0) >= 0 ? `+${entry.quantityChange}` : entry.quantityChange;
+        const quantityDisplay = entry.balanceType === 'cash' ? '—' : qtyText;
+        const amount = Number(entry.amount || 0);
+        const amountDisplay = amount > 0 ? `+${formatCurrency(amount)}` : amount < 0 ? formatCurrency(amount) : '—';
+        const balanceDisplay = entry.balanceType === 'cash' ? formatCurrency(entry.balance) : String(entry.balance ?? 0);
         return `
           <tr>
             <td class="py-3 px-3 text-slate-500 text-xs font-mono">${escapeHtml(new Date(entry.timestamp).toLocaleString())}</td>
             <td class="py-3 px-3"><span class="inline-flex px-2 py-1 rounded-full text-[11px] font-semibold ${typeClasses[entry.type] || typeClasses.ADJUSTED}">${labels[entry.type] || 'Updated'}</span></td>
             <td class="py-3 px-3 font-medium text-slate-800">${escapeHtml(entry.productName)}</td>
-            <td class="py-3 px-3 text-right font-semibold ${Number(entry.quantityChange || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${escapeHtml(qtyText)}</td>
-            <td class="py-3 px-3 text-right font-medium text-slate-700">${escapeHtml(String(entry.balance ?? 0))}</td>
+            <td class="py-3 px-3 text-right font-semibold ${entry.balanceType === 'cash' ? 'text-slate-400' : Number(entry.quantityChange || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${escapeHtml(quantityDisplay)}</td>
+            <td class="py-3 px-3 text-right font-semibold ${amount > 0 ? 'text-emerald-600' : amount < 0 ? 'text-rose-600' : 'text-slate-400'}">${escapeHtml(amountDisplay)}</td>
+            <td class="py-3 px-3 text-right font-medium text-slate-700">${escapeHtml(balanceDisplay)}</td>
             <td class="py-3 px-3 hidden md:table-cell text-slate-600">${escapeHtml(entry.note || '—')}</td>
           </tr>
         `;
       }).join('');
     }
 
-    function switchTab(tabName) {
+    function switchTab(tabName, persist = true) {
       const isInventory = tabName === 'inventory';
       state.activeTab = tabName;
       document.getElementById('view-inventory').classList.toggle('hidden', !isInventory);
@@ -777,7 +1383,7 @@
       document.getElementById('tab-audit').setAttribute('aria-selected', String(!isInventory));
       document.getElementById('tab-inventory').className = `tab-btn cursor-pointer select-none px-4 py-2 rounded-lg text-sm ${isInventory ? 'font-semibold bg-white text-slate-900 shadow-sm' : 'font-medium text-slate-600 hover:text-slate-900'} transition flex items-center gap-2`;
       document.getElementById('tab-audit').className = `tab-btn cursor-pointer select-none px-4 py-2 rounded-lg text-sm ${!isInventory ? 'font-semibold bg-white text-slate-900 shadow-sm' : 'font-medium text-slate-600 hover:text-slate-900'} transition flex items-center gap-2`;
-      saveState();
+      if (persist) saveState();
     }
 
     function openProductModal(productId = null) {
@@ -817,7 +1423,7 @@
       document.getElementById('reset-modal').classList.add('hidden');
     }
 
-    function resetInventoryToDemo() {
+    async function resetInventoryToDemo() {
       const fallback = buildDefaultState();
       state.products = fallback.products;
       state.auditLog = fallback.auditLog;
@@ -830,6 +1436,7 @@
       state.cashAvailable = fallback.cashAvailable;
       state.totalProfit = fallback.totalProfit;
       state.totalCapitalInjected = fallback.totalCapitalInjected;
+      state.totalExpenses = fallback.totalExpenses;
       document.getElementById('currency-select').value = state.currency;
       document.getElementById('search-input').value = state.searchQuery;
       document.getElementById('status-filter').value = state.statusFilter;
@@ -839,10 +1446,10 @@
       renderInventory();
       renderSaleProducts();
       renderAuditLog();
-      switchTab('inventory');
-      saveState();
+      switchTab('inventory', false);
+      const saved = await saveState();
       closeResetModal();
-      showToast('Demo inventory reset successfully', 'success');
+      if (saved) showToast('Demo inventory reset successfully', 'success');
     }
 
     function validateProductInput(payload) {
@@ -854,7 +1461,7 @@
       }
     }
 
-    function saveProductFromForm(event) {
+    async function saveProductFromForm(event) {
       event.preventDefault();
       const form = event.currentTarget;
       const payload = {
@@ -891,7 +1498,6 @@
           note: 'New product created',
           timestamp: new Date().toISOString(),
         });
-        showToast('Product added successfully', 'success');
       } else {
         const previous = state.products[existingIndex];
         const previousStock = previous.stock;
@@ -905,19 +1511,20 @@
           note: 'Manual product edit',
           timestamp: new Date().toISOString(),
         });
-        showToast('Product updated successfully', 'success');
       }
 
-      closeProductModal();
       renderCategoryOptions();
       renderInventory();
       renderSaleProducts();
       renderAuditLog();
       updateKpis();
-      saveState();
+      if (await saveState()) {
+        closeProductModal();
+        showToast(isNew ? 'Product added successfully' : 'Product updated successfully', 'success');
+      }
     }
 
-    function deleteProduct(productId) {
+    async function deleteProduct(productId) {
       const product = state.products.find(item => item.id === productId);
       if (!product) return;
       state.products = state.products.filter(item => item.id !== productId);
@@ -935,11 +1542,10 @@
       renderSaleProducts();
       renderAuditLog();
       updateKpis();
-      saveState();
-      showToast(`${product.name} was removed`, 'info');
+      if (await saveState()) showToast(`${product.name} was removed`, 'info');
     }
 
-    function adjustStock(productId, delta, reason) {
+    async function adjustStock(productId, delta, reason) {
       const product = state.products.find(item => item.id === productId);
       if (!product) return;
       const previousStock = Number(product.stock || 0);
@@ -958,10 +1564,10 @@
       renderInventory();
       renderSaleProducts();
       renderAuditLog();
-      saveState();
+      await saveState();
     }
 
-    function completeSale(event) {
+    async function completeSale(event) {
       event.preventDefault();
       const productId = document.getElementById('sale-product').value;
       const quantity = Number(document.getElementById('sale-quantity').value);
@@ -973,17 +1579,19 @@
         return;
       }
 
-      const revenue = quantity * unitPrice;
-      const profit = quantity * (unitPrice - product.unitCost);
+      const revenue = Math.round((quantity * unitPrice + Number.EPSILON) * 100) / 100;
+      const profit = Math.round((revenue - quantity * product.unitCost + Number.EPSILON) * 100) / 100;
       product.stock -= quantity;
-      state.cashAvailable += revenue;
-      state.totalProfit += profit;
+      state.cashAvailable = Math.round((state.cashAvailable + revenue + Number.EPSILON) * 100) / 100;
+      state.totalProfit = Math.round((state.totalProfit + profit + Number.EPSILON) * 100) / 100;
       state.auditLog.push({
         id: makeId('audit'),
         type: 'STOCK_OUT',
         productName: product.name,
         quantityChange: -quantity,
         balance: product.stock,
+        balanceType: 'stock',
+        amount: revenue,
         note: `Sale: ${formatCurrency(revenue)} revenue; ${formatCurrency(profit)} profit`,
         timestamp: new Date().toISOString(),
       });
@@ -993,31 +1601,135 @@
       updateKpis();
       renderInventory();
       renderAuditLog();
-      saveState();
-      showToast(`Sale recorded: ${formatCurrency(revenue)} received`, 'success');
+      if (await saveState()) showToast(`Sale recorded: ${formatCurrency(revenue)} received`, 'success');
     }
 
-    function addCapital(event) {
+    async function addCapital(event) {
       event.preventDefault();
-      const amount = Number(document.getElementById('capital-amount').value);
+      const rawAmount = Number(document.getElementById('capital-amount').value);
+      const amount = Math.round((rawAmount + Number.EPSILON) * 100) / 100;
       if (!Number.isFinite(amount) || amount <= 0) {
         showToast('Enter a capital amount greater than zero.', 'error');
         return;
       }
-      state.cashAvailable += amount;
-      state.totalCapitalInjected += amount;
+      state.cashAvailable = Math.round((state.cashAvailable + amount + Number.EPSILON) * 100) / 100;
+      state.totalCapitalInjected = Math.round((state.totalCapitalInjected + amount + Number.EPSILON) * 100) / 100;
+      state.auditLog.push({
+        id: makeId('audit'),
+        type: 'CAPITAL_IN',
+        productName: 'Capital',
+        quantityChange: 0,
+        balance: state.cashAvailable,
+        balanceType: 'cash',
+        amount,
+        note: 'Capital added to available cash',
+        timestamp: new Date().toISOString(),
+      });
       document.getElementById('capital-form').reset();
       updateKpis();
-      saveState();
-      showToast(`${formatCurrency(amount)} added to available cash`, 'success');
+      renderAuditLog();
+      if (await saveState()) showToast(`${formatCurrency(amount)} added to available cash`, 'success');
     }
 
-    function clearAuditLog() {
+    function updateStockPurchaseCostFromProduct() {
+      const product = state.products.find(item => item.id === document.getElementById('stock-purchase-product').value);
+      document.getElementById('stock-purchase-unit-cost').value = product && product.unitCost > 0
+        ? Number(product.unitCost).toFixed(2)
+        : '';
+      updateStockPurchaseTotal();
+    }
+
+    async function purchaseStock(event) {
+      event.preventDefault();
+      const product = state.products.find(item => item.id === document.getElementById('stock-purchase-product').value);
+      const quantity = Number(document.getElementById('stock-purchase-quantity').value);
+      const unitCost = Number(document.getElementById('stock-purchase-unit-cost').value);
+      const note = sanitizeText(document.getElementById('stock-purchase-note').value, '');
+
+      if (!product || !Number.isInteger(quantity) || quantity <= 0 || !Number.isFinite(unitCost) || unitCost <= 0) {
+        showToast('Choose a product and enter a whole quantity and purchase cost greater than zero.', 'error');
+        return;
+      }
+
+      const purchaseTotal = Math.round((quantity * unitCost + Number.EPSILON) * 100) / 100;
+      if (!Number.isFinite(purchaseTotal) || purchaseTotal <= 0) {
+        showToast('The stock purchase total must be greater than zero.', 'error');
+        return;
+      }
+      if (purchaseTotal > state.cashAvailable) {
+        showToast(`Not enough available cash. This purchase costs ${formatCurrency(purchaseTotal)}.`, 'error');
+        return;
+      }
+
+      const previousStock = Number(product.stock || 0);
+      const previousValue = previousStock * Number(product.unitCost || 0);
+      product.stock = previousStock + quantity;
+      product.unitCost = (previousValue + purchaseTotal) / product.stock;
+      state.cashAvailable = Math.round((state.cashAvailable - purchaseTotal + Number.EPSILON) * 100) / 100;
+      state.auditLog.push({
+        id: makeId('audit'),
+        type: 'PURCHASE',
+        productName: product.name,
+        quantityChange: quantity,
+        balance: product.stock,
+        balanceType: 'stock',
+        amount: -purchaseTotal,
+        note: `Purchased ${quantity} at ${formatCurrency(unitCost)} per unit${note ? `; ${note}` : ''}`,
+        timestamp: new Date().toISOString(),
+      });
+
+      document.getElementById('stock-purchase-form').reset();
+      renderCategoryOptions();
+      renderInventory();
+      renderSaleProducts(product.id);
+      renderAuditLog();
+      updateKpis();
+      updateStockPurchaseCostFromProduct();
+      if (await saveState()) showToast(`${quantity} ${product.name} added to stock; ${formatCurrency(purchaseTotal)} deducted from cash`, 'success');
+    }
+
+    async function recordExpense(event) {
+      event.preventDefault();
+      const category = sanitizeText(document.getElementById('expense-category').value, '');
+      const rawAmount = Number(document.getElementById('expense-amount').value);
+      const amount = Math.round((rawAmount + Number.EPSILON) * 100) / 100;
+      const description = sanitizeText(document.getElementById('expense-description').value, '');
+
+      if (!category || !Number.isFinite(amount) || amount <= 0) {
+        showToast('Enter an expense category and an amount greater than zero.', 'error');
+        return;
+      }
+      if (amount > state.cashAvailable) {
+        showToast(`Not enough available cash for this ${category.toLowerCase()} expense.`, 'error');
+        return;
+      }
+
+      state.cashAvailable = Math.round((state.cashAvailable - amount + Number.EPSILON) * 100) / 100;
+      state.totalExpenses = Math.round((state.totalExpenses + amount + Number.EPSILON) * 100) / 100;
+      state.totalProfit = Math.round((state.totalProfit - amount + Number.EPSILON) * 100) / 100;
+      state.auditLog.push({
+        id: makeId('audit'),
+        type: 'EXPENSE',
+        productName: category,
+        quantityChange: 0,
+        balance: state.cashAvailable,
+        balanceType: 'cash',
+        amount: -amount,
+        note: description || `${category} expense`,
+        timestamp: new Date().toISOString(),
+      });
+
+      document.getElementById('expense-form').reset();
+      updateKpis();
+      renderAuditLog();
+      if (await saveState()) showToast(`${formatCurrency(amount)} ${category.toLowerCase()} expense recorded`, 'success');
+    }
+
+    async function clearAuditLog() {
       state.auditLog = [];
       renderAuditLog();
       updateKpis();
-      saveState();
-      showToast('Audit history cleared', 'info');
+      if (await saveState()) showToast('Audit history cleared', 'info');
     }
 
     function exportToCSV() {
@@ -1068,7 +1780,7 @@
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
         try {
           const text = String(reader.result || '');
           const rows = text.split(/\r?\n/).filter(row => row.trim().length > 0);
@@ -1116,8 +1828,7 @@
           renderSaleProducts();
           renderAuditLog();
           updateKpis();
-          saveState();
-          showToast(`Imported ${imported.length} products`, 'success');
+          if (await saveState()) showToast(`Imported ${imported.length} products`, 'success');
         } catch (error) {
           showToast(error.message || 'CSV import failed', 'error');
         } finally {
@@ -1173,6 +1884,11 @@
       document.getElementById('sale-form').addEventListener('submit', completeSale);
       document.getElementById('sale-product').addEventListener('change', updateSalePrice);
       document.getElementById('capital-form').addEventListener('submit', addCapital);
+      document.getElementById('expense-form').addEventListener('submit', recordExpense);
+      document.getElementById('stock-purchase-form').addEventListener('submit', purchaseStock);
+      document.getElementById('stock-purchase-product').addEventListener('change', updateStockPurchaseCostFromProduct);
+      document.getElementById('stock-purchase-quantity').addEventListener('input', updateStockPurchaseTotal);
+      document.getElementById('stock-purchase-unit-cost').addEventListener('input', updateStockPurchaseTotal);
       document.getElementById('clear-search-btn').addEventListener('click', () => {
         document.getElementById('search-input').value = '';
         state.searchQuery = '';
@@ -1183,7 +1899,7 @@
         state.searchQuery = event.target.value;
         document.getElementById('clear-search-btn').classList.toggle('hidden', !event.target.value.trim().length);
         renderInventory();
-        saveState();
+        scheduleSaveState();
       });
       document.getElementById('category-filter').addEventListener('change', event => {
         state.categoryFilter = event.target.value;
@@ -1208,11 +1924,10 @@
       });
       document.getElementById('tab-inventory').addEventListener('click', () => switchTab('inventory'));
       document.getElementById('tab-audit').addEventListener('click', () => switchTab('audit'));
-      window.addEventListener('storage', event => {
-        if (event.key === APP_STORAGE_KEY) refreshFromSavedState();
-      });
       if (liveChannel) {
-        liveChannel.addEventListener('message', refreshFromSavedState);
+        liveChannel.addEventListener('message', () => {
+          refreshFromSavedState();
+        });
       }
       document.addEventListener('keydown', event => {
         if (event.key === 'Escape') {
@@ -1222,8 +1937,15 @@
       });
     }
 
-    function refreshFromSavedState() {
-      loadState();
+    async function refreshFromSavedState() {
+      if (!currentUser) return;
+      try {
+        await loadStateFromDatabase();
+      } catch (error) {
+        console.error('Could not refresh shared inventory:', error);
+        showToast(error.message || 'Could not refresh inventory from Supabase.', 'error');
+        return;
+      }
       document.getElementById('currency-select').value = state.currency;
       document.getElementById('search-input').value = state.searchQuery;
       document.getElementById('status-filter').value = state.lowStockFilter ? 'LOW_STOCK' : state.statusFilter;
@@ -1233,26 +1955,25 @@
       renderSaleProducts();
       renderInventory();
       renderAuditLog();
+      switchTab(state.activeTab, false);
     }
 
-    function initialize() {
-      loadState();
-      document.getElementById('currency-select').value = state.currency;
-      document.getElementById('search-input').value = state.searchQuery;
-      document.getElementById('status-filter').value = state.lowStockFilter ? 'LOW_STOCK' : state.statusFilter;
-      document.getElementById('audit-type-filter').value = 'ALL';
-      document.getElementById('clear-search-btn').classList.toggle('hidden', !state.searchQuery.trim().length);
-      renderCategoryOptions();
-      bindStaticEvents();
-      renderSaleProducts();
-      updateKpis();
-      renderInventory();
-      renderAuditLog();
-      switchTab(state.activeTab);
+    async function initialize() {
       lucide.createIcons();
+      bindAuthEvents();
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) {
+        setAuthMessage(`Could not restore sign-in: ${error.message}`, 'error');
+        console.error('Could not restore Supabase session:', error);
+        return;
+      }
+      await handleAuthSession(data.session);
     }
 
-    initialize();
+    initialize().catch(error => {
+      setAuthMessage(error.message || 'Could not initialize the application.', 'error');
+      console.error('Application initialization failed:', error);
+    });
   </script>
 </body>
 </html>
